@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation Blood Gas Report Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        #reportOutput {
+            font-family: 'Roboto Mono', monospace;
+            white-space: pre;
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            color: #111827;
+            overflow-x: auto;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8">
+
+        <header class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Simulation Blood Gas Report Generator</h1>
+            <p class="text-gray-500 mt-2">Enter a clinical scenario to generate a physiologically consistent blood gas report.</p>
+        </header>
+
+        <main>
+            <div class="mb-4">
+                <label for="scenarioInput" class="block text-sm font-medium text-gray-700 mb-2">Clinical Scenario</label>
+                <textarea id="scenarioInput" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="e.g., '68 year old with COPD exacerbation' or '16 year old DKA'"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select Gas Type</label>
+                <div class="flex items-center space-x-6">
+                    <div class="flex items-center">
+                        <input id="arterialRadio" name="gasType" type="radio" value="Arterial" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300" checked>
+                        <label for="arterialRadio" class="ml-2 block text-sm font-medium text-gray-900">
+                            Arterial
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="venousRadio" name="gasType" type="radio" value="Venous" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                        <label for="venousRadio" class="ml-2 block text-sm font-medium text-gray-900">
+                            Venous
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <button id="generateBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                Generate Report
+            </button>
+
+            <div class="mt-8">
+                <div class="flex justify-between items-center mb-2">
+                      <h2 class="text-xl font-semibold text-gray-800">Generated Report</h2>
+                      <div class="flex items-center space-x-2">
+                          <button id="copyBtn" class="hidden bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition duration-300 ease-in-out text-sm">
+                              Copy
+                          </button>
+                          <button id="downloadBtn" class="hidden bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-300 ease-in-out text-sm">
+                              Download PDF
+                          </button>
+                      </div>
+                </div>
+                <div id="loadingIndicator" class="hidden justify-center items-center py-10">
+                    <div class="spinner"></div>
+                    <p class="ml-4 text-gray-600">Generating report, please wait...</p>
+                </div>
+                <div id="errorMessage" class="hidden p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
+                    <span class="font-medium">Error!</span> <span id="errorMessageText"></span>
+                </div>
+                <pre id="reportOutput" class="hidden"></pre>
+                <div id="placeholder" class="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                    <p class="text-gray-500">Your generated lab report will appear here.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const scenarioInput = document.getElementById('scenarioInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const reportOutput = document.getElementById('reportOutput');
+        const placeholder = document.getElementById('placeholder');
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorMessageText = document.getElementById('errorMessageText');
+
+        generateBtn.addEventListener('click', handleGenerateReport);
+        copyBtn.addEventListener('click', copyReportToClipboard);
+        downloadBtn.addEventListener('click', downloadReportAsPDF);
+
+        async function handleGenerateReport() {
+            const scenario = scenarioInput.value.trim();
+            if (!scenario) {
+                showError("Please enter a clinical scenario before generating a report.");
+                return;
+            }
+
+            showLoading(true);
+            reportOutput.textContent = '';
+            errorMessage.classList.add('hidden');
+
+            try {
+                // Call the NEW function that connects to our secure backend
+                const generatedText = await callGeminiAPI(scenario); 
+
+                if (generatedText) {
+                    reportOutput.textContent = generatedText;
+                } else {
+                    showError("The model could not generate a report for this scenario.");
+                }
+
+            } catch (error) {
+                console.error("Error during report generation:", error);
+                showError(error.message || "An unexpected error occurred. Please try again.");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        /**
+         * Calls our own secure Netlify Function to generate the report.
+         */
+        async function callGeminiAPI(scenario) {
+            const selectedGasType = document.querySelector('input[name="gasType"]:checked').value;
+            
+            // This is the path to our secure backend function
+            const functionURL = '/.netlify/functions/generate-report';
+
+            try {
+                const response = await fetch(functionURL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    // Send the scenario and gas type to our function
+                    body: JSON.stringify({
+                        scenario: scenario,
+                        gasType: selectedGasType
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorResult = await response.json();
+                    // Display a more specific error if available
+                    throw new Error(errorResult.error || 'The server returned an error.');
+                }
+
+                const result = await response.json();
+                // Return the report text from the function's response
+                return result.report;
+
+            } catch (error) {
+                console.error("Error calling Netlify function:", error);
+                // We re-throw the error so the calling function can handle it
+                throw error; 
+            }
+        }
+
+        function showLoading(isLoading) {
+            if (isLoading) {
+                loadingIndicator.classList.remove('hidden');
+                loadingIndicator.classList.add('flex');
+                reportOutput.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                generateBtn.disabled = true;
+                generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                copyBtn.classList.add('hidden');
+                downloadBtn.classList.add('hidden');
+            } else {
+                loadingIndicator.classList.add('hidden');
+                loadingIndicator.classList.remove('flex');
+                if(reportOutput.textContent) {
+                    reportOutput.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    copyBtn.classList.remove('hidden');
+                    downloadBtn.classList.remove('hidden');
+                }
+                generateBtn.disabled = false;
+                generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function showError(message = "Something went wrong. Please try again.") {
+            errorMessageText.textContent = message;
+            errorMessage.classList.remove('hidden');
+            reportOutput.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+        }
+
+        function copyReportToClipboard() {
+            if (!reportOutput.textContent) return;
+            navigator.clipboard.writeText(reportOutput.textContent).then(() => {
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+                showError("Could not copy text to clipboard.");
+            });
+        }
+        
+        async function downloadReportAsPDF() {
+            if (!reportOutput.textContent) return;
+            const { jsPDF } = window.jspdf;
+
+            try {
+                const canvas = await html2canvas(reportOutput, { 
+                    scale: 3, 
+                    backgroundColor: '#ffffff'
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
+                const canvasAspectRatio = canvasWidth / canvasHeight;
+                
+                const margin = 10;
+                let imgWidth = pdfWidth - (2 * margin);
+                let imgHeight = imgWidth / canvasAspectRatio;
+
+                if (imgHeight > pdfHeight - (2 * margin)) {
+                    imgHeight = pdfHeight - (2 * margin);
+                    imgWidth = imgHeight * canvasAspectRatio;
+                }
+
+                const x = (pdfWidth - imgWidth) / 2;
+                const y = (pdfHeight - imgHeight) / 2;
+
+                pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+                pdf.save('simulation-blood-gas-report.pdf');
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showError('Could not generate PDF. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
