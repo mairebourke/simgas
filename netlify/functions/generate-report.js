@@ -130,9 +130,14 @@ ctO₂             [Value]       Vol %
     }
 
     if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Google API Error:', errorData);
-        throw new Error(`Google API responded with status: ${response.status} after ${maxRetries} attempts.`);
+        const errorText = await response.text(); // Safely read response body as text
+        console.error('Google API Error:', `Status: ${response.status}`, `Body: ${errorText}`);
+        // Directly return a structured JSON error to the client.
+        return {
+          statusCode: 502, // 502 Bad Gateway is appropriate as we are acting as a proxy
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: `Failed to get a valid response from the API after ${attempt} attempts.` }),
+        };
     }
 
     const data = await response.json();
@@ -150,9 +155,11 @@ ctO₂             [Value]       Vol %
     console.error('Error in Netlify function:', error);
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Failed to generate report.' }),
     };
   }
 };
+
 
 
