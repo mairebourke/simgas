@@ -9,6 +9,30 @@ function formatLine(label, value, unit = '', reference = '') {
     return `${labelCol}${valueCol}${unitCol}${reference}\n`;
 }
 
+// --- NEW HELPER FUNCTION FOR WORD WRAPPING ---
+function wordWrap(text, maxWidth) {
+    const lines = [];
+    // Sanitize text by removing extra newlines that the AI might add
+    const sanitizedText = text.replace(/\s+/g, ' ').trim();
+    const words = sanitizedText.split(' ');
+    
+    if (words.length === 0) return [];
+
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+        if ((currentLine + " " + words[i]).length > maxWidth) {
+            lines.push(currentLine);
+            currentLine = words[i];
+        } else {
+            currentLine += " " + words[i];
+        }
+    }
+    lines.push(currentLine);
+    return lines;
+}
+
+
 exports.handler = async (event) => {
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
@@ -73,7 +97,6 @@ exports.handler = async (event) => {
         const explanationResult = await explanationResponse.json();
         const explanationText = explanationResult.candidates[0].content.parts[0].text;
 
-
         // --- BUILD THE FINAL COMBINED REPORT ---
         let formattedReport = '';
         formattedReport += '                           Blood Gas\n';
@@ -93,7 +116,6 @@ exports.handler = async (event) => {
         formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(10.67 - 13.33)');
         formattedReport += '────────────────────────────────────────────────────────\n';
         formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
-        // ... (rest of the report formatting is the same)
         formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
         formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
         formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
@@ -117,19 +139,28 @@ exports.handler = async (event) => {
         formattedReport += formatLine('P50', reportData.p50, 'mmol/L');
         formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
         
-        // --- ADD THE INSTRUCTOR BOX ---
-        formattedReport += '\n\n'; // Add some space before the box
-        formattedReport += '┌─────────────────────────────────────────────────────────\n';
-        formattedReport += '│ Explanation for Instructors\n';
-        formattedReport += '├─────────────────────────────────────────────────────────\n';
-        formattedReport += `│ Scenario: ${scenario}\n`;
-        // Format the explanation text to fit inside the box with word wrapping
-        const explanationLines = explanationText.match(/.{1,55}/g) || [];
-        explanationLines.forEach(line => {
-            formattedReport += `│ ${line.padEnd(55, ' ')} │\n`;
-        });
-        formattedReport += '└─────────────────────────────────────────────────────────\n';
+        // --- ADD THE INSTRUCTOR BOX (Corrected Version) ---
+        const boxWidth = 60;
+        const contentWidth = boxWidth - 4; // Account for │ spaces │
 
+        formattedReport += '\n\n';
+        formattedReport += '┌' + '─'.repeat(boxWidth - 2) + '┐\n';
+        formattedReport += '│ ' + 'Explanation for Instructors'.padEnd(boxWidth - 3) + '│\n';
+        formattedReport += '├' + '─'.repeat(boxWidth - 2) + '┤\n';
+        
+        const scenarioLine = `Scenario: ${scenario}`;
+        const scenarioLines = wordWrap(scenarioLine, contentWidth);
+        scenarioLines.forEach(line => {
+            formattedReport += '│ ' + line.padEnd(contentWidth) + ' │\n';
+        });
+        
+        formattedReport += '│ ' + ' '.repeat(contentWidth) + ' │\n'; // Blank line for spacing
+
+        const explanationLines = wordWrap(explanationText, contentWidth);
+        explanationLines.forEach(line => {
+            formattedReport += `│ ${line.padEnd(contentWidth, ' ')} │\n`;
+        });
+        formattedReport += '└' + '─'.repeat(boxWidth - 2) + '┘\n';
 
         return {
             statusCode: 200,
