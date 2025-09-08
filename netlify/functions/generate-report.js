@@ -2,7 +2,6 @@
 const API_KEY = process.env.GEMINI_API_KEY;
 
 // --- HELPER FUNCTION FOR FORMATTING ---
-// This function takes the data and creates a perfectly aligned string.
 function formatLine(label, value, unit = '', reference = '') {
     const labelCol = label.padEnd(18, ' ');
     const valueCol = (value || '').padEnd(12, ' ');
@@ -18,70 +17,64 @@ exports.handler = async (event) => {
     try {
         const { scenario, gasType } = JSON.parse(event.body);
 
-        // This is Prompt 1 from your paper, asking for structured JSON data.
-        const systemPrompt = `You are a clinical data API. Based on the user's scenario, generate a realistic blood gas report.
+        // --- PROMPT 1: GET STRUCTURED CLINICAL DATA ---
+        const dataGenerationPrompt = `You are a clinical data API. Based on the user's scenario, generate a realistic blood gas report.
         Your output MUST be a valid JSON object. Do not include any text before or after the JSON object. Do not use markdown.
         The value for the "bloodType" key must be "${gasType}".
         You MUST include every single key from the example JSON structure. Do not omit any keys.
-
         You MUST use the following complete JSON structure:
-        {
-          "patientId": "123456",
-          "lastName": "Smith",
-          "firstName": "Jane",
-          "temperature": "37.0",
-          "fio2": "0.21",
-          "r": "0.80",
-          "ph": "7.35",
-          "pco2": "5.50",
-          "po2": "12.00",
-          "na": "140",
-          "k": "4.1",
-          "cl": "100",
-          "ca": "1.20",
-          "hct": "45",
-          "glucose": "5.5",
-          "lactate": "1.2",
-          "thb": "15.0",
-          "o2hb": "98.0",
-          "cohb": "1.1",
-          "hhb": "1.9",
-          "methb": "0.6",
-          "be": "0.0",
-          "chco3": "24.0",
-          "aado2": "15.0",
-          "so2": "98.2",
-          "chco3st": "25.0",
-          "p50": "26.0",
-          "cto2": "20.0"
-        }
-        
+        { "patientId": "123456", "lastName": "Smith", "firstName": "Jane", "temperature": "37.0", "fio2": "0.21", "r": "0.80", "ph": "7.35", "pco2": "5.50", "po2": "12.00", "na": "140", "k": "4.1", "cl": "100", "ca": "1.20", "hct": "45", "glucose": "5.5", "lactate": "1.2", "thb": "15.0", "o2hb": "98.0", "cohb": "1.1", "hhb": "1.9", "methb": "0.6", "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "chco3st": "25.0", "p50": "26.0", "cto2": "20.0" }
         Final instruction: Ensure the output JSON is complete and contains all 27 keys from the example structure.`;
 
         const model = 'gemini-1.5-flash';
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
         
-        const response = await fetch(apiURL, {
+        // --- API CALL 1: GENERATE THE DATA ---
+        const dataResponse = await fetch(apiURL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: `${systemPrompt}\n\nClinical Scenario: ${scenario}` }] }],
-                generationConfig: {
-                    temperature: 0.2,
-                    responseMimeType: "application/json", // This forces the AI to return valid JSON
-                }
+                contents: [{ parts: [{ text: `${dataGenerationPrompt}\n\nClinical Scenario: ${scenario}` }] }],
+                generationConfig: { temperature: 0.2, responseMimeType: "application/json" }
             })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Google API responded with status: ${response.status}. Details: ${JSON.stringify(errorData)}`);
+        if (!dataResponse.ok) {
+            throw new Error(`Google API (Data Gen) Error: ${dataResponse.status}`);
         }
 
-        const data = await response.json();
-        const reportData = JSON.parse(data.candidates[0].content.parts[0].text);
+        const dataResult = await dataResponse.json();
+        const reportData = JSON.parse(dataResult.candidates[0].content.parts[0].text);
 
-        // This is where our code builds the perfect three-column format from the AI's data.
+        // --- PROMPT 2: GET CLINICAL EXPLANATION ---
+        const explanationPrompt = `You are a clinical educator. Given a clinical scenario and blood gas results, write a brief, clear explanation for instructors on how the results are consistent with the scenario. Focus on the key abnormal values and their physiological significance.
+
+        SCENARIO:
+        ${scenario}
+
+        RESULTS (JSON):
+        ${JSON.stringify(reportData, null, 2)}
+        `;
+
+        // --- API CALL 2: GENERATE THE EXPLANATION ---
+        const explanationResponse = await fetch(apiURL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: explanationPrompt }] }],
+                generationConfig: { temperature: 0.3 }
+            })
+        });
+
+        if (!explanationResponse.ok) {
+            throw new Error(`Google API (Explanation Gen) Error: ${explanationResponse.status}`);
+        }
+        
+        const explanationResult = await explanationResponse.json();
+        const explanationText = explanationResult.candidates[0].content.parts[0].text;
+
+
+        // --- BUILD THE FINAL COMBINED REPORT ---
         let formattedReport = '';
         formattedReport += '                           Blood Gas\n';
         formattedReport += '                       Emergency Department\n';
@@ -100,6 +93,7 @@ exports.handler = async (event) => {
         formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(10.67 - 13.33)');
         formattedReport += '────────────────────────────────────────────────────────\n';
         formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
+        // ... (rest of the report formatting is the same)
         formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
         formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
         formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
@@ -122,6 +116,20 @@ exports.handler = async (event) => {
         formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
         formattedReport += formatLine('P50', reportData.p50, 'mmol/L');
         formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
+        
+        // --- ADD THE INSTRUCTOR BOX ---
+        formattedReport += '\n\n'; // Add some space before the box
+        formattedReport += '┌─────────────────────────────────────────────────────────\n';
+        formattedReport += '│ Explanation for Instructors\n';
+        formattedReport += '├─────────────────────────────────────────────────────────\n';
+        formattedReport += `│ Scenario: ${scenario}\n`;
+        // Format the explanation text to fit inside the box with word wrapping
+        const explanationLines = explanationText.match(/.{1,55}/g) || [];
+        explanationLines.forEach(line => {
+            formattedReport += `│ ${line.padEnd(55, ' ')} │\n`;
+        });
+        formattedReport += '└─────────────────────────────────────────────────────────\n';
+
 
         return {
             statusCode: 200,
@@ -136,3 +144,4 @@ exports.handler = async (event) => {
         };
     }
 };
+
