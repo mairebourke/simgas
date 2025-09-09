@@ -52,10 +52,17 @@ function formatLine(label, value, unit = '', reference = '') {
 
 // --- HELPER FUNCTION FOR WORD WRAPPING ---
 function wordWrap(text, maxWidth) {
+    // Safety check for invalid input
+    if (!text || typeof text !== 'string') {
+        return [];
+    }
     const lines = [];
     const sanitizedText = text.replace(/\s+/g, ' ').trim();
+     // Safety check for empty string after sanitizing
+    if (!sanitizedText) {
+        return [];
+    }
     const words = sanitizedText.split(' ');
-    if (words.length === 0) return [];
     let currentLine = words[0];
     for (let i = 1; i < words.length; i++) {
         if ((currentLine + " " + words[i]).length > maxWidth) {
@@ -124,7 +131,17 @@ exports.handler = async (event) => {
             throw new Error(`Google API (Explanation Gen) failed after retries with status: ${explanationResponse?.status}`);
         }
         const explanationResult = await explanationResponse.json();
-        const explanationText = explanationResult.candidates[0].content.parts[0].text;
+        
+        // --- SAFE EXTRACTION OF EXPLANATION TEXT ---
+        let explanationText = "Explanation could not be generated."; // Default text
+        // Use optional chaining to safely access nested properties.
+        if (explanationResult.candidates?.[0]?.content?.parts?.[0]?.text) {
+            explanationText = explanationResult.candidates[0].content.parts[0].text;
+        } else {
+            // Log the unexpected response structure for debugging in Netlify.
+            console.warn("API response for explanation was missing expected text content.", JSON.stringify(explanationResult));
+        }
+
 
         // --- BUILD THE FINAL COMBINED REPORT ---
         let formattedReport = '';
@@ -201,4 +218,5 @@ exports.handler = async (event) => {
         };
     }
 };
+
 
