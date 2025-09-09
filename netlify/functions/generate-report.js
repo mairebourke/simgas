@@ -110,38 +110,40 @@ exports.handler = async (event) => {
         const dataResult = await dataResponse.json();
         const reportData = JSON.parse(dataResult.candidates[0].content.parts[0].text);
 
-        // --- PROMPT 2: GET CLINICAL EXPLANATION ---
-        const explanationPrompt = `You are a clinical educator. Given a clinical scenario and blood gas results, write a brief, clear explanation for instructors on how the results are consistent with the scenario. Focus on the key abnormal values and their physiological significance. Keep the explanation concise and to the point.
+        // --- PROMPT 2 & API CALL 2 (Now wrapped in a try/catch block for resilience) ---
+        let explanationText = "Explanation could not be generated at this time."; // Default fallback text
 
-        SCENARIO:
-        ${scenario}
+        try {
+            const explanationPrompt = `You are a clinical educator. Given a clinical scenario and blood gas results, write a brief, clear explanation for instructors on how the results are consistent with the scenario. Focus on the key abnormal values and their physiological significance. Keep the explanation concise and to the point.
 
-        RESULTS (JSON):
-        ${JSON.stringify(reportData, null, 2)}
-        `;
+            SCENARIO:
+            ${scenario}
 
-        const explanationPayload = {
-            contents: [{ parts: [{ text: explanationPrompt }] }],
-            generationConfig: { temperature: 0.3 }
-        };
+            RESULTS (JSON):
+            ${JSON.stringify(reportData, null, 2)}
+            `;
 
-        // --- API CALL 2: GENERATE THE EXPLANATION (with retry) ---
-        const explanationResponse = await fetchWithRetry(apiURL, explanationPayload);
-        if (!explanationResponse || !explanationResponse.ok) {
-            throw new Error(`Google API (Explanation Gen) failed after retries with status: ${explanationResponse?.status}`);
+            const explanationPayload = {
+                contents: [{ parts: [{ text: explanationPrompt }] }],
+                generationConfig: { temperature: 0.3 }
+            };
+
+            const explanationResponse = await fetchWithRetry(apiURL, explanationPayload);
+
+            if (explanationResponse && explanationResponse.ok) {
+                const explanationResult = await explanationResponse.json();
+                if (explanationResult.candidates?.[0]?.content?.parts?.[0]?.text) {
+                    explanationText = explanationResult.candidates[0].content.parts[0].text;
+                } else {
+                    console.warn("API response for explanation was missing expected text content.", JSON.stringify(explanationResult));
+                }
+            } else {
+                console.error(`Google API (Explanation Gen) failed after retries. Status: ${explanationResponse?.status}. Proceeding without explanation.`);
+            }
+        } catch (error) {
+            console.error("An error occurred during explanation generation. The main report will be generated without it.", error);
+            // The function will continue using the default explanationText, preventing a crash.
         }
-        const explanationResult = await explanationResponse.json();
-        
-        // --- SAFE EXTRACTION OF EXPLANATION TEXT ---
-        let explanationText = "Explanation could not be generated."; // Default text
-        // Use optional chaining to safely access nested properties.
-        if (explanationResult.candidates?.[0]?.content?.parts?.[0]?.text) {
-            explanationText = explanationResult.candidates[0].content.parts[0].text;
-        } else {
-            // Log the unexpected response structure for debugging in Netlify.
-            console.warn("API response for explanation was missing expected text content.", JSON.stringify(explanationResult));
-        }
-
 
         // --- BUILD THE FINAL COMBINED REPORT ---
         let formattedReport = '';
@@ -218,5 +220,6 @@ exports.handler = async (event) => {
         };
     }
 };
+
 
 
