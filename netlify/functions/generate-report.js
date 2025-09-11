@@ -45,12 +45,17 @@ exports.handler = async (event) => {
 
         // --- PROMPT 1: DATA GENERATION ---
         // This prompt asks the AI to return only structured JSON data.
-        // It includes a conditional instruction for venous gases.
         const dataGenerationPrompt = `You are a clinical data API. Your task is to generate a physiologically appropriate blood gas report based on the user's clinical scenario.
 Your output MUST be a valid JSON object. Do not include any text before or after the JSON object. Do not use markdown.
 The JSON object must have keys for each parameter shown below. Generate plausible string values for each key that are medically consistent with the scenario.
 The value for the "bloodType" key must be "${gasType}".
 All gas values (pco2, po2) must be in kPa.
+
+**Detailed Clinical Correlation Mandate**: Your primary task is to ensure every single value in the JSON output is a direct and logical consequence of the clinical scenario's pathophysiology. Do not generate generic "normal" values for parameters that would be affected.
+- For scenarios involving seizures, shock, or severe hypoxia, you MUST generate a significantly elevated lactate.
+- For scenarios like DKA, you MUST generate high glucose and an anion gap metabolic acidosis.
+- For crush injuries or renal failure, you MUST consider and adjust potassium levels appropriately.
+- Think through the cause-and-effect for every parameter. The entire report must tell a consistent clinical story.
 
 **IMPORTANT RULE**: If the gasType is "Venous", you MUST generate a low PO2 value (between 4.0 and 6.0 kPa) and a PCO2 value that is slightly higher than a typical arterial value.
 
