@@ -55,6 +55,7 @@ All gas values (pco2, po2) must be in kPa.
 - For scenarios involving seizures, shock, or severe hypoxia, you MUST generate a significantly elevated lactate.
 - For scenarios like DKA, you MUST generate high glucose and an anion gap metabolic acidosis.
 - For crush injuries or renal failure, you MUST consider and adjust potassium levels appropriately.
+- For acid-base balance, you MUST generate appropriate 'cHCO3' (bicarbonate) and 'be' (base excess) values. These are NOT static values. They must reflect the metabolic compensation or primary metabolic disorder consistent with the scenario. For example, in a metabolic acidosis (like DKA or post-seizure), both bicarbonate and base excess should be low. In a compensated respiratory acidosis (like chronic COPD), bicarbonate should be high.
 - Think through the cause-and-effect for every parameter. The entire report must tell a consistent clinical story.
 
 **IMPORTANT RULE**: If the gasType is "Venous", you MUST generate a low PO2 value (between 4.0 and 6.0 kPa) and a PCO2 value that is slightly higher than a typical arterial value.
