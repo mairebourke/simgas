@@ -1,2 +1,2 @@
-[functions "generate-report"]
+[functions]
   timeout = 25
