@@ -52,6 +52,7 @@ The value for the "bloodType" key must be "${gasType}".
 All gas values (pco2, po2) must be in kPa.
 
 **Detailed Clinical Correlation Mandate**: Your primary task is to ensure every single value in the JSON output is a direct and logical consequence of the clinical scenario's pathophysiology. Do not generate generic "normal" values for parameters that would be affected.
+- For scenarios involving cardiac arrest, you MUST generate a profound mixed acidosis: very low pH (<7.1), high PCO2 (>10 kPa), very low PO2 (<4 kPa), and a very high lactate (>10 mmol/L).
 - For scenarios involving seizures, shock, or severe hypoxia, you MUST generate a significantly elevated lactate.
 - For scenarios like DKA, you MUST generate high glucose and an anion gap metabolic acidosis.
 - For crush injuries or renal failure, you MUST consider and adjust potassium levels appropriately.
