@@ -44,31 +44,36 @@ exports.handler = async (event) => {
         const { scenario, gasType } = JSON.parse(event.body);
 
         // --- PROMPT 1: DATA GENERATION ---
-        // This prompt asks the AI to return only structured JSON data.
-        const dataGenerationPrompt = `You are a clinical data API. Your task is to generate a physiologically appropriate blood gas report based on the user's clinical scenario.
-Your output MUST be a valid JSON object. Do not include any text before or after the JSON object. Do not use markdown.
-The JSON object must have keys for each parameter shown below. Generate plausible string values for each key that are medically consistent with the scenario.
-The value for the "bloodType" key must be "${gasType}".
-All gas values (pco2, po2) must be in kPa.
+        // This is the updated, more detailed prompt for the AI.
+        const dataGenerationPrompt = `
+You are an advanced clinical physiology simulator. Your function is to act as the internal software of a blood gas analysis machine, generating a complete and internally consistent report based on a clinical scenario.
 
-**Detailed Clinical Correlation Mandate**: Your primary task is to ensure every single value in the JSON output is a direct and logical consequence of the clinical scenario's pathophysiology. Do not generate generic "normal" values for parameters that would be affected.
-- For scenarios involving cardiac arrest, you MUST generate a profound mixed acidosis: very low pH (<7.1), high PCO2 (>10 kPa), very low PO2 (<4 kPa), and a very high lactate (>10 mmol/L).
-- For scenarios involving seizures, shock, or severe hypoxia, you MUST generate a significantly elevated lactate.
-- For scenarios like DKA, you MUST generate high glucose and an anion gap metabolic acidosis.
-- For crush injuries or renal failure, you MUST consider and adjust potassium levels appropriately.
-- For acid-base balance, you MUST generate appropriate 'cHCO3' (bicarbonate) and 'be' (base excess) values. These are NOT static values. They must reflect the metabolic compensation or primary metabolic disorder consistent with the scenario. For example, in a metabolic acidosis (like DKA or post-seizure), both bicarbonate and base excess should be low. In a compensated respiratory acidosis (like chronic COPD), bicarbonate should be high.
-- Think through the cause-and-effect for every parameter. The entire report must tell a consistent clinical story.
+Your output MUST be a valid JSON object and nothing else. Do not use markdown or any text outside of the JSON structure.
 
-**IMPORTANT RULE**: If the gasType is "Venous", you MUST generate a low PO2 value (between 4.0 and 6.0 kPa) and a PCO2 value that is slightly higher than a typical arterial value.
+### Core Directive: Pathophysiological Consistency
+Your primary task is to ensure every single value in the JSON output is a direct, logical, and quantifiable consequence of the provided clinical scenario. The entire report must tell a single, coherent clinical story.
 
-Example JSON structure to follow:
+### Governing Physiological Principles (You MUST adhere to these)
+1.  **Acid-Base Balance (Henderson-Hasselbalch Relationship)**: The values for pH, pco2, and chco3 MUST be mathematically consistent. A change in one directly impacts the others. For example, a high pco2 (acid) MUST result in a lower pH unless compensated by a high chco3 (base). An acute acidosis will have a much lower pH for a given pco2 than a chronic, compensated state.
+2.  **Anion Gap**: The Anion Gap, calculated as (Na⁺ - (Cl⁻ + cHCO₃)), MUST be appropriate for the scenario. In cases of DKA, severe lactic acidosis, or certain toxidromes, you MUST generate Na⁺, Cl⁻, and cHCO₃ values that result in a high anion gap (typically > 16 mmol/L). In other cases, it should be normal (8-16 mmol/L).
+3.  **Oxygenation & A-a Gradient**: The Alveolar-arterial (A-a) gradient (AaDO₂) MUST reflect the scenario's impact on the lungs. For a patient on room air (fio2=0.21), the AaDO₂ should be low. In cases of pneumonia, ARDS, PE, or pulmonary edema, the AaDO₂ MUST be significantly elevated, indicating impaired oxygen transfer from alveoli to blood. A high fio2 with a persistently low po2 implies a very large A-a gradient.
+4.  **Compensation**: Metabolic and respiratory compensation must be logical. A chronic respiratory acidosis (e.g., COPD) MUST show renal compensation (elevated cHCO₃). An acute event (e.g., asthma attack, seizure) will show little to no metabolic compensation (normal or near-normal cHCO₃).
+
+### Specific Rules
+- **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value.
+
+### Final Review Instruction
+Before outputting the JSON, internally double-check all generated values against the Governing Physiological Principles to ensure complete consistency.
+
+### JSON Structure to Follow
+The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po2) must be in kPa.
 {
   "patientId": "123456", "lastName": "Smith", "firstName": "Jane", "temperature": "37.0", "fio2": "0.21", "r": "0.80",
   "ph": "7.35", "pco2": "5.50", "po2": "12.00", "na": "140", "k": "4.1", "cl": "100", "ca": "1.20", "hct": "45",
   "glucose": "5.5", "lactate": "1.2", "thb": "15.0", "o2hb": "98.0", "cohb": "1.1", "hhb": "1.9", "methb": "0.6",
-  "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "chco3st": "25.0", "p50": "26.0", "cto2": "20.0"
+  "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "chco3st": "25.0", "p50": "26.0", "cto2": "20.0",
+  "interpretation": "Normal Acid-Base Balance"
 }
-You MUST include every single key from the example structure in your final JSON output.
 `;
 
         const model = 'gemini-1.5-flash';
@@ -100,8 +105,8 @@ You MUST include every single key from the example structure in your final JSON 
 
         // --- FORMAT THE MAIN REPORT ---
         let formattedReport = '';
-        formattedReport += '                           Blood Gas\n';
-        formattedReport += '                       Emergency Department\n';
+        formattedReport += '                            Blood Gas\n';
+        formattedReport += '                          Emergency Department\n';
         formattedReport += '────────────────────────────────────────────────────────\n';
         formattedReport += `Patient ID:       ${reportData.patientId || ''}\n`;
         formattedReport += `Last Name         ${reportData.lastName || ''}\n`;
@@ -149,38 +154,10 @@ You MUST include every single key from the example structure in your final JSON 
         formattedReport += formatLine('P50', reportData.p50, 'mmol/L');
         formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
 
-        // --- PROMPT 2: EXPLANATION GENERATION ---
-        const explanationPrompt = `You are a clinical educator. Based on the provided clinical scenario and the resulting blood gas data, provide a brief explanation for instructors.
-Explain how the key abnormal values in the blood gas report are consistent with the patient's scenario.
-Focus on the primary acid-base disturbance and any compensatory mechanisms. Keep the explanation concise and clear.
-Do not repeat the full blood gas results, just reference the key values.
-Your output must be a single paragraph of plain text. Do not use markdown like ** or *.`;
-        
-        // We send the scenario and the generated data back to the AI for the explanation
-        const fullExplanationQuery = `Clinical Scenario: ${scenario}\n\nGenerated Blood Gas Data:\n${JSON.stringify(reportData, null, 2)}`;
-        
-        // --- API CALL 2: GET THE EXPLANATION ---
-        const explanationResponse = await fetch(apiURL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: `${explanationPrompt}\n\n${fullExplanationQuery}` }] }],
-                generationConfig: { temperature: 0.5 }
-            })
-        });
-
-        if (!explanationResponse.ok) {
-            console.error("Google API Error (Explanation):", await explanationResponse.text());
-            throw new Error(`Google API (Explanation) Error: ${explanationResponse.status}`);
-        }
-        
-        const explanationResult = await explanationResponse.json();
-        const explanationText = explanationResult.candidates[0].content.parts[0].text;
-        
-        // --- ADD THE EXPLANATION BOX TO THE FINAL REPORT ---
+        // --- ADD THE SUMMARY BOX TO THE FINAL REPORT ---
         formattedReport += '\n\n';
         formattedReport += '┌────────────────────────────────────────────────────────┐\n';
-        formattedReport += '│ Explanation for Instructors                            │\n';
+        formattedReport += '│ Clinical Summary                                       │\n';
         formattedReport += '├────────────────────────────────────────────────────────┤\n';
         
         const scenarioLine = `Scenario: ${scenario}`;
@@ -188,9 +165,12 @@ Your output must be a single paragraph of plain text. Do not use markdown like *
         for (const line of wrappedScenario) {
             formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
         }
-        
-        const wrappedExplanation = wordWrap(explanationText, 54);
-        for (const line of wrappedExplanation) {
+
+        formattedReport += `│ ${''.padEnd(54, ' ')} │\n`;
+
+        const interpretationLine = `Interpretation: ${reportData.interpretation}`;
+        const wrappedInterpretation = wordWrap(interpretationLine, 54);
+        for (const line of wrappedInterpretation) {
             formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
         }
         
