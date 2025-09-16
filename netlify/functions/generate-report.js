@@ -44,7 +44,6 @@ exports.handler = async (event) => {
         const { scenario, gasType } = JSON.parse(event.body);
 
         // --- PROMPT 1: DATA GENERATION ---
-        // This is the updated, more detailed prompt for the AI.
         const dataGenerationPrompt = `
 You are an advanced clinical physiology simulator. Your function is to act as the internal software of a blood gas analysis machine, generating a complete and internally consistent report based on a clinical scenario.
 
@@ -58,6 +57,10 @@ Your primary task is to ensure every single value in the JSON output is a direct
 2.  **Anion Gap**: The Anion Gap, calculated as (Na⁺ - (Cl⁻ + cHCO₃)), MUST be appropriate for the scenario. In cases of DKA, severe lactic acidosis, or certain toxidromes, you MUST generate Na⁺, Cl⁻, and cHCO₃ values that result in a high anion gap (typically > 16 mmol/L). In other cases, it should be normal (8-16 mmol/L).
 3.  **Oxygenation & A-a Gradient**: The Alveolar-arterial (A-a) gradient (AaDO₂) MUST reflect the scenario's impact on the lungs. For a patient on room air (fio2=0.21), the AaDO₂ should be low. In cases of pneumonia, ARDS, PE, or pulmonary edema, the AaDO₂ MUST be significantly elevated, indicating impaired oxygen transfer from alveoli to blood. A high fio2 with a persistently low po2 implies a very large A-a gradient.
 4.  **Compensation**: Metabolic and respiratory compensation must be logical. A chronic respiratory acidosis (e.g., COPD) MUST show renal compensation (elevated cHCO₃). An acute event (e.g., asthma attack, seizure) will show little to no metabolic compensation (normal or near-normal cHCO₃).
+5.  **Fluid & Electrolyte Balance**: Electrolyte values, particularly Sodium (Na⁺) and Potassium (K⁺), MUST reflect the clinical scenario. For example:
+    - **Dehydration (e.g., from diarrhoea, vomiting, poor fluid intake)**: MUST result in an elevated Sodium (Hypernatremia, Na⁺ > 148 mmol/L).
+    - **Renal Failure/Anuria**: MUST result in an elevated Potassium (Hyperkalemia, K⁺ > 4.5 mmol/L).
+    - **Diabetic Ketoacidosis (DKA)**: Often presents with low or normal sodium due to osmotic shifts, and variable potassium.
 
 ### Specific Rules
 - **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value.
@@ -153,7 +156,7 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
         formattedReport += formatLine('P50', reportData.p50, 'mmol/L');
         formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
-
+       
         // --- ADD THE SUMMARY BOX TO THE FINAL REPORT ---
         formattedReport += '\n\n';
         formattedReport += '┌────────────────────────────────────────────────────────┐\n';
