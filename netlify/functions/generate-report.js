@@ -63,7 +63,7 @@ Your primary task is to ensure every single value in the JSON output is a direct
     - **Diabetic Ketoacidosis (DKA)**: Often presents with low or normal sodium due to osmotic shifts, and variable potassium.
 
 ### Specific Rules
-- **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value.
+- **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value. Consequently, the oxygen saturation values (o2hb and so2) MUST be appropriately low to reflect venous blood, typically in the range of 60-80%.
 
 ### Final Review Instruction
 Before outputting the JSON, internally double-check all generated values against the Governing Physiological Principles to ensure complete consistency.
@@ -193,4 +193,5 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         };
     }
 };
+
 
