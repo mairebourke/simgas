@@ -124,10 +124,18 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
         let reportData;
         try {
             const rawText = dataResult.candidates[0].content.parts[0].text;
-            reportData = JSON.parse(rawText);
+            
+            // **NEW** Robust JSON cleaning logic
+            const match = rawText.match(/\{[\s\S]*\}/);
+            if (!match) {
+                throw new Error("No valid JSON object found in the API response.");
+            }
+            const cleanedJson = match[0];
+            reportData = JSON.parse(cleanedJson);
+
         } catch (e) {
             console.error("Failed to parse JSON response from API. Raw text was:", dataResult.candidates[0].content.parts[0].text);
-            throw new Error("Failed to parse the API's JSON response. The model may have returned malformed data.");
+            throw new Error(`Failed to parse the API's JSON response. Error: ${e.message}`);
         }
 
 
