@@ -53,7 +53,12 @@ Your output MUST be a valid JSON object and nothing else. Do not use markdown or
 Your primary task is to ensure every single value in the JSON output is a direct, logical, and quantifiable consequence of the provided clinical scenario. The entire report must tell a single, coherent clinical story.
 
 ### Governing Physiological Principles (You MUST adhere to these)
-1.  **Acid-Base Balance (Henderson-Hasselbalch Relationship)**: The values for pH, pco2, and chco3 MUST be mathematically consistent. A change in one directly impacts the others. For example, a high pco2 (acid) MUST result in a lower pH unless compensated by a high chco3 (base). An acute acidosis will have a much lower pH for a given pco2 than a chronic, compensated state.
+1.  **Primary Acid-Base Interpretation & Consistency**: You MUST correctly identify the primary acid-base disorder from the clinical scenario and ensure the pH, PCO2, and cHCO3 are consistent with that disorder.
+    - **Metabolic Acidosis (e.g., DKA, sepsis, overdose)**: MUST have low pH, low cHCO3, and compensatory low PCO2.
+    - **Metabolic Alkalosis (e.g., severe vomiting)**: MUST have high pH, high cHCO3, and compensatory high PCO2.
+    - **Respiratory Acidosis (e.g., COPD, respiratory muscle weakness, opiate overdose)**: MUST have low pH and high PCO2.
+    - **Respiratory Alkalosis (e.g., hyperventilation due to anxiety OR an inappropriately high ventilator rate)**: MUST have high pH and low PCO2.
+    - The Henderson-Hasselbalch relationship MUST be maintained.
 2.  **Anion Gap**: The Anion Gap, calculated as (Na⁺ - (Cl⁻ + cHCO₃)), MUST be appropriate for the scenario. In cases of DKA, severe lactic acidosis, or certain toxidromes, you MUST generate Na⁺, Cl⁻, and cHCO₃ values that result in a high anion gap (typically > 16 mmol/L). In other cases, it should be normal (8-16 mmol/L).
 3.  **Oxygenation, Saturation & A-a Gradient**: The relationship between PO2 and the oxygen saturation values (o2hb, so2) is critical and MUST be consistent with the oxyhemoglobin dissociation curve. The Alveolar-arterial (A-a) gradient (AaDO₂) MUST reflect the scenario's impact on the lungs. For a patient on room air (fio2=0.21), the AaDO₂ should be low. In cases of pneumonia, ARDS, PE, or pulmonary edema, the AaDO₂ MUST be significantly elevated, indicating impaired oxygen transfer.
 4.  **Compensation**: Metabolic and respiratory compensation must be logical. A chronic respiratory acidosis (e.g., COPD) MUST show renal compensation (elevated cHCO₃). An acute event (e.g., asthma attack, seizure) will show little to no metabolic compensation (normal or near-normal cHCO₃).
@@ -65,6 +70,7 @@ Your primary task is to ensure every single value in the JSON output is a direct
 ### Specific Rules
 - **Arterial Sample**: If gasType is "Arterial", the PO2 and saturation values MUST align. A normal PO2 (>10.5 kPa) must have high saturation (>95%). A low PO2 (e.g., 8.0 kPa) MUST have a correspondingly lower but physiologically linked saturation (approx. 90%).
 - **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value. Consequently, the oxygen saturation values (o2hb and so2) MUST be appropriately low to reflect venous blood, typically in the range of 60-80%.
+- **Interpretation Context**: The \`interpretation\` text MUST be relevant to the sample type. Specifically, if the \`gasType\` is "Venous", the interpretation MUST NOT make statements about systemic oxygenation (e.g., do not use terms like "hypoxemia" or "hypoxia"). The interpretation for a venous gas should be limited to acid-base and metabolic findings.
 
 ### Final Review Instruction
 Before outputting the JSON, internally double-check all generated values against the Governing Physiological Principles and Specific Rules to ensure complete consistency.
@@ -190,7 +196,7 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         console.error('Error in Netlify function:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: message || 'Failed to generate report. Check function logs.' }),
+            body: JSON.stringify({ error: error.message || 'Failed to generate report. Check function logs.' }),
         };
     }
 };
