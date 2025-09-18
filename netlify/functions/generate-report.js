@@ -154,7 +154,7 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         formattedReport += '────────────────────────────────────────────────────────\n';
         formattedReport += formatLine('HCT', reportData.hct, '%', '(35.0 – 50.0)');
         formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport. += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
+        formattedReport += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
         formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
         formattedReport += '────────────────────────────────────────────────────────\n';
         formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
