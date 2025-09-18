@@ -68,10 +68,10 @@ Your primary task is to ensure every single value in the JSON output is a direct
 
 ### Specific Rules
 - **Arterial Sample**: If gasType is "Arterial", the PO2 and saturation values MUST align. A normal PO2 (>10.5 kPa) must have high saturation (>95%). A low PO2 (e.g., 8.0 kPa) MUST have a correspondingly lower but physiologically linked saturation (approx. 90%).
-- **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value. Consequently, the oxygen saturation values (o2hb and so2) MUST be appropriately low to reflect venous blood, typically in the range of 60-80%.
+- **CRITICAL VENOUS SAMPLE RULE**: If gasType is "Venous", it is a mandatory requirement that you generate a low PO2 (between 4.0 and 6.0 kPa) and correspondingly low oxygen saturation values (o2hb and so2, between 60-80%). This rule is critical for physiological accuracy.
 
 ### Final Review Instruction
-Before outputting the JSON, internally double-check all generated values against the Governing Physiological Principles and Specific Rules to ensure complete consistency.
+Before outputting the JSON, internally double-check all generated values against the Governing Physiological Principles and Specific Rules. Pay special attention to the gasType and ensure the PO2 and saturation values are correct for that type (arterial vs. venous).
 
 ### JSON Structure to Follow
 The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po2) must be in kPa.
