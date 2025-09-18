@@ -61,14 +61,7 @@ Your primary task is to ensure every single value in the JSON output is a direct
     - The Henderson-Hasselbalch relationship MUST be maintained.
 2.  **Anion Gap**: The Anion Gap, calculated as (Na⁺ - (Cl⁻ + cHCO₃)), MUST be appropriate for the scenario. In cases of DKA, severe lactic acidosis, or certain toxidromes, you MUST generate Na⁺, Cl⁻, and cHCO₃ values that result in a high anion gap (typically > 16 mmol/L). In other cases, it should be normal (8-16 mmol/L).
 3.  **Oxygenation, Saturation & A-a Gradient**: The relationship between PO2 and the oxygen saturation values (o2hb, so2) is critical and MUST be consistent with the oxyhemoglobin dissociation curve. The Alveolar-arterial (A-a) gradient (AaDO₂) MUST reflect the scenario's impact on the lungs. For a patient on room air (fio2=0.21), the AaDO₂ should be low. In cases of pneumonia, ARDS, PE, or pulmonary edema, the AaDO₂ MUST be significantly elevated, indicating impaired oxygen transfer.
-4.  **Compensation Logic & Terminology**: The presence and accuracy of compensation in the \`interpretation\` text MUST be logical and reflect the generated data.
-    - **Partial Compensation** occurs when the compensatory mechanism has started, but the pH has NOT yet returned to the normal range. The interpretation MUST use the phrase "with partial respiratory compensation" or "with partial metabolic compensation".
-    - **Uncompensated** means the primary disorder exists without any significant change in the compensatory parameter. The interpretation MUST use the term "uncompensated".
-    - A primary **Metabolic Acidosis** is partially compensated by a **low PCO2**.
-    - A primary **Metabolic Alkalosis** is partially compensated by a **high PCO2**.
-    - A primary **Respiratory Acidosis** is partially compensated by a **high cHCO3**.
-    - A primary **Respiratory Alkalosis** is partially compensated by a **low cHCO3**.
-5.  **Fluid & Electrolyte Balance**: Electrolyte values, particularly Sodium (Na⁺) and Potassium (K⁺), MUST reflect the clinical scenario. For example:
+4.  **Fluid & Electrolyte Balance**: Electrolyte values, particularly Sodium (Na⁺) and Potassium (K⁺), MUST reflect the clinical scenario. For example:
     - **Dehydration (e.g., from diarrhoea, vomiting, poor fluid intake)**: MUST result in an elevated Sodium (Hypernatremia, Na⁺ > 148 mmol/L).
     - **Renal Failure/Anuria**: MUST result in an elevated Potassium (Hyperkalemia, K⁺ > 4.5 mmol/L).
     - **Diabetic Ketoacidosis (DKA)**: Often presents with low or normal sodium due to osmotic shifts, and variable potassium.
@@ -76,10 +69,6 @@ Your primary task is to ensure every single value in the JSON output is a direct
 ### Specific Rules
 - **Arterial Sample**: If gasType is "Arterial", the PO2 and saturation values MUST align. A normal PO2 (>10.5 kPa) must have high saturation (>95%). A low PO2 (e.g., 8.0 kPa) MUST have a correspondingly lower but physiologically linked saturation (approx. 90%).
 - **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value. Consequently, the oxygen saturation values (o2hb and so2) MUST be appropriately low to reflect venous blood, typically in the range of 60-80%.
-- **Interpretation Context & Formatting**: The \`interpretation\` text MUST be relevant to the sample type and follow a strict format.
-    - **Format**: The interpretation must be a single, concise phrase following the template: "[Primary Disorder] with [Compensation Status]" or "Uncompensated [Primary Disorder]". Do NOT add any extra explanatory text.
-    - **Examples**: "Uncompensated Metabolic Acidosis", "Metabolic Alkalosis with partial respiratory compensation", "Respiratory Acidosis with partial metabolic compensation".
-    - If the \`gasType\` is "Venous", the interpretation MUST NOT make statements about systemic oxygenation (e.g., do not use terms like "hypoxemia" or "hypoxia").
 
 ### Final Review Instruction
 Before outputting the JSON, internally double-check all generated values against the Governing Physiological Principles and Specific Rules to ensure complete consistency.
@@ -90,8 +79,7 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
   "patientId": "123456", "lastName": "Smith", "firstName": "Jane", "temperature": "37.0", "fio2": "0.21", "r": "0.80",
   "ph": "7.35", "pco2": "5.50", "po2": "12.00", "na": "140", "k": "4.1", "cl": "100", "ca": "1.20", "hct": "45",
   "glucose": "5.5", "lactate": "1.2", "thb": "15.0", "o2hb": "98.0", "cohb": "1.1", "hhb": "1.9", "methb": "0.6",
-  "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "chco3st": "25.0", "p50": "26.0", "cto2": "20.0",
-  "interpretation": "Normal Acid-Base Balance"
+  "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "chco3st": "25.0", "p50": "26.0", "cto2": "20.0"
 }
 `;
 
@@ -182,14 +170,6 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         const scenarioLine = `Scenario: ${scenario}`;
         const wrappedScenario = wordWrap(scenarioLine, 54);
         for (const line of wrappedScenario) {
-            formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
-        }
-
-        formattedReport += `│ ${''.padEnd(54, ' ')} │\n`;
-
-        const interpretationLine = `Interpretation: ${reportData.interpretation}`;
-        const wrappedInterpretation = wordWrap(interpretationLine, 54);
-        for (const line of wrappedInterpretation) {
             formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
         }
         
