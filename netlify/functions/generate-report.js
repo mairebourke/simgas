@@ -45,30 +45,31 @@ exports.handler = async (event) => {
 
         // --- PROMPT 1: DATA GENERATION ---
         const dataGenerationPrompt = `
-You are an advanced clinical physiology simulator. Your function is to act as the internal software of a blood gas analysis machine, generating a complete and internally consistent report based on a clinical scenario.
+You are an advanced clinical physiology simulator. Your function is to generate a complete and internally consistent blood gas report. Your output MUST be a valid JSON object and nothing else.
 
-Your output MUST be a valid JSON object and nothing else. Do not use markdown or any text outside of the JSON structure.
+### MANDATORY Generation Protocol (Follow these steps in order)
 
-### Core Directive: Pathophysiological Consistency
-Your primary task is to ensure every single value in the JSON output is a direct, logical, and quantifiable consequence of the provided clinical scenario. The entire report must tell a single, coherent clinical story.
+**Step 1: DETERMINE SAMPLE TYPE (NON-NEGOTIABLE).**
+First, look at the provided 'gasType' variable. This is the most important instruction and governs the next step.
 
-### Governing Physiological Principles (You MUST adhere to these)
-1.  **Sample Type Integrity (NON-NEGOTIABLE)**: Your first and most important step is to check the 'gasType' variable. All subsequent values MUST be physiologically consistent with this type.
-    - **If gasType is "Venous"**: The PO2 MUST be low (4.0-6.0 kPa) and O2 saturations (o2hb, so2) MUST also be low (60-80%). This is a fundamental, non-negotiable property of venous blood.
-    - **If gasType is "Arterial"**: The PO2 and saturation values MUST align with the oxyhemoglobin dissociation curve. A normal PO2 (>10.5 kPa) requires high saturation (>95%). A low PO2 (e.g., 8.0 kPa) requires a correspondingly lower but physiologically linked saturation (approx. 90%).
-2.  **Primary Acid-Base Interpretation & Consistency**: After establishing the sample type, you MUST correctly identify the primary acid-base disorder from the clinical scenario and ensure the pH, PCO2, and cHCO3 are consistent.
-    - **Metabolic Acidosis (e.g., DKA, sepsis, overdose)**: MUST have low pH, low cHCO3, and compensatory low PCO2.
-    - **Metabolic Alkalosis (e.g., severe vomiting)**: MUST have high pH, high cHCO3, and compensatory high PCO2.
-    - **Respiratory Acidosis (e.g., COPD, respiratory muscle weakness, opiate overdose)**: MUST have low pH and high PCO2.
-    - **Respiratory Alkalosis (e.g., hyperventilation due to anxiety OR an inappropriately high ventilator rate)**: MUST have high pH and low PCO2.
-3.  **Anion Gap**: The Anion Gap, calculated as (Na⁺ - (Cl⁻ + cHCO₃)), MUST be appropriate. High anion gaps (> 16 mmol/L) are expected in DKA, lactic acidosis, and toxidromes.
-4.  **Oxygenation & A-a Gradient (Arterial Only)**: The Alveolar-arterial (A-a) gradient (AaDO₂) is only relevant for arterial gases and MUST reflect the scenario's lung impact. In pneumonia, ARDS, PE, or pulmonary edema, the AaDO₂ MUST be significantly elevated.
-5.  **Fluid & Electrolyte Balance**: Electrolyte values MUST reflect the clinical scenario.
-    - **Dehydration**: MUST result in elevated Sodium (Hypernatremia, Na⁺ > 148 mmol/L).
-    - **Renal Failure/Anuria**: MUST result in elevated Potassium (Hyperkalemia, K⁺ > 4.5 mmol/L).
+**Step 2: LOCK IN OXYGENATION PARAMETERS.**
+Based ONLY on the 'gasType' from Step 1, you MUST generate physiologically appropriate values for PO2, o2hb, and so2.
+- **If 'gasType' is "Venous"**: The PO2 MUST be low (strictly between 4.0-6.0 kPa). The O2 saturations (o2hb, so2) MUST also be low (strictly between 60-80%). This is a fundamental, non-negotiable property of venous blood.
+- **If 'gasType' is "Arterial"**: The PO2 and O2 saturation values MUST be consistent with the oxyhemoglobin dissociation curve. A PO2 of 8.0 kPa corresponds to an O2 saturation of ~90%. A normal PO2 (>10.5 kPa) requires a high saturation (>95%).
 
-### Final Review Instruction
-Before outputting the JSON, perform one final check: does the generated PO2 and O2 saturation match the required 'gasType'? If not, you must correct it before finalizing the output.
+**Step 3: ANALYZE THE CLINICAL SCENARIO.**
+Now, read the 'scenario' text to determine the primary acid-base disorder and any other expected physiological changes (e.g., electrolyte shifts, lactate levels).
+
+**Step 4: GENERATE ALL OTHER VALUES.**
+Generate the remaining JSON values (pH, PCO2, electrolytes, etc.) to be consistent with the scenario (Step 3). These values MUST co-exist logically with the locked-in oxygenation parameters from Step 2.
+
+**Step 5: FINAL REVIEW.**
+Before outputting the JSON, perform one final check: does the generated PO2 and O2 saturation strictly match the required 'gasType' as defined in Step 2? If not, you must correct it before finalizing the output.
+
+### Other Physiological Principles to Maintain
+- **Primary Acid-Base Consistency**: The pH, PCO2, and cHCO3 must match the disorder identified in the scenario (e.g., Respiratory Alkalosis = high pH, low PCO2).
+- **Anion Gap**: Must be appropriate. High anion gaps (> 16 mmol/L) are expected in DKA, lactic acidosis, and toxidromes.
+- **Fluid & Electrolyte Balance**: Electrolytes must reflect the scenario (e.g., Dehydration -> Hypernatremia; Renal Failure -> Hyperkalemia).
 
 ### JSON Structure to Follow
 The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po2) must be in kPa.
@@ -182,7 +183,7 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         console.error('Error in Netlify function:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: message || 'Failed to generate report. Check function logs.' }),
+            body: JSON.stringify({ error: error.message || 'Failed to generate report. Check function logs.' }),
         };
     }
 };
