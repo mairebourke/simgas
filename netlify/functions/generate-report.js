@@ -117,13 +117,19 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
 
         const dataResult = await makeApiCall();
         
-        // --- Improved Error Handling ---
-        // Check if the API response is valid before trying to parse it.
         if (!dataResult.candidates || dataResult.candidates.length === 0 || !dataResult.candidates[0].content || !dataResult.candidates[0].content.parts || dataResult.candidates[0].content.parts.length === 0) {
             throw new Error("The API returned an empty or invalid response. This may be due to safety filters blocking the content. Please try a different scenario.");
         }
         
-        const reportData = JSON.parse(dataResult.candidates[0].content.parts[0].text);
+        let reportData;
+        try {
+            const rawText = dataResult.candidates[0].content.parts[0].text;
+            reportData = JSON.parse(rawText);
+        } catch (e) {
+            console.error("Failed to parse JSON response from API. Raw text was:", dataResult.candidates[0].content.parts[0].text);
+            throw new Error("Failed to parse the API's JSON response. The model may have returned malformed data.");
+        }
+
 
         // --- FORMAT THE MAIN REPORT ---
         let formattedReport = '';
