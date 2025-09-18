@@ -203,7 +203,7 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         console.error('Error in Netlify function:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: error.message || 'Failed to generate report. Check function logs.' }),
+            body: JSON.stringify({ error: message || 'Failed to generate report. Check function logs.' }),
         };
     }
 };
