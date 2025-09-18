@@ -47,31 +47,30 @@ exports.handler = async (event) => {
         const dataGenerationPrompt = `
 You are an advanced clinical physiology simulator. Your function is to generate a complete and internally consistent blood gas report. Your output MUST be a valid JSON object.
 
-### The Unbreakable Law of Sample Type & Oxygenation
-Your most important, non-negotiable task is to obey the 'gasType' variable and ensure the PO2 and saturation values are a perfect physiological match. This rule supersedes all other clinical considerations.
+### System Mandate: The Laws of Physics Supersede Pathology
+Your primary directive is to obey the physiological laws of the sample type. This is more important than the clinical scenario. A venous gas is ALWAYS a venous gas.
 
-**1. VENOUS GAS LAW:**
+### The Unbreakable Law of Sample Type & Oxygenation
+Your most important, non-negotiable task is to obey the 'gasType' variable.
+
+**1. VENOUS GAS LAW (NON-NEGOTIABLE):**
 - If 'gasType' is "Venous", you MUST generate a PO2 strictly between 4.0 and 6.0 kPa.
 - The corresponding O2 saturations (o2hb, so2) MUST be low, strictly between 60% and 80%.
-- This law applies regardless of the clinical scenario.
+- This is a law of physics for this simulation. It applies to every single venous sample, regardless of how sick the patient is.
 
 **2. ARTERIAL GAS LAW (Oxyhemoglobin Dissociation Curve):**
 - If 'gasType' is "Arterial", the PO2 and O2 saturation values are bound by a strict physiological link. You MUST ensure they match precisely according to these key points on the curve:
   - A PO2 of ~12.0 kPa **MUST** have a saturation of ~98%.
   - A PO2 of ~8.0 kPa **MUST** have a saturation of ~90%.
   - A PO2 of ~5.5 kPa **MUST** have a saturation of ~75%.
-- Generate values that reflect this curve. A PO2 of 9.0 kPa cannot have a saturation of 70%.
 
 ### Generation Protocol
-Once you have set the oxygenation parameters according to the Unbreakable Law above, you may then proceed:
+Once you have set the oxygenation parameters according to the Unbreakable Law above, you may then proceed to simulate the clinical scenario for all other values.
 
-**A. Analyze Scenario Severity:** Read the 'scenario' text to determine the primary pathology and its severity. The magnitude of the generated values must match the severity.
-- **Example - Severe AKI/Anuria**: This demands a severe metabolic acidosis (pH < 7.20, cHCO₃ < 15 mmol/L) and critical hyperkalemia (K⁺ > 5.5 mmol/L).
-- **Example - Severe Sepsis**: This demands a high lactate (>4.0 mmol/L).
-
-**B. Generate Remaining Data:** Generate all other values (pH, PCO2, electrolytes) to be consistent with the scenario's severity, ensuring they co-exist logically with the pre-determined oxygenation values.
-
-**C. Final Adherence Check:** Before outputting, confirm you have obeyed the Unbreakable Law of Sample Type and that PO2 and saturation are a matching pair.
+### FINAL CORRECTION MANDATE
+Before outputting the JSON, you MUST perform this final check:
+- **Question**: Did I generate a PO2 value greater than 6.0 kPa for a 'Venous' gas?
+- **Action**: If the answer is yes, this is a critical failure. You MUST correct the PO2 to be within the 4.0-6.0 kPa range and adjust the O2 saturation to the 60-80% range before generating the final JSON.
 
 ### JSON Structure to Follow
 The value for the "bloodType" key must be "${gasType}". All gas values must be in kPa.
