@@ -120,14 +120,13 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
         const dataResult = await makeApiCall();
         
         if (!dataResult.candidates || dataResult.candidates.length === 0 || !dataResult.candidates[0].content || !dataResult.candidates[0].content.parts || dataResult.candidates[0].content.parts.length === 0) {
-            throw new Error("The API returned an empty or invalid response. This may be due to safety filters blocking the content. Please try a different scenario.");
+            throw new Error("The API returned an empty or invalid response, likely due to safety filters. Please try rephrasing the scenario.");
         }
         
         let reportData;
         try {
             const rawText = dataResult.candidates[0].content.parts[0].text;
             
-            // Robust JSON cleaning logic
             const match = rawText.match(/\{[\s\S]*\}/);
             if (!match) {
                 throw new Error("No valid JSON object found in the API response.");
@@ -137,7 +136,7 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
 
         } catch (e) {
             console.error("Failed to parse JSON response from API. Raw text was:", dataResult.candidates[0].content.parts[0].text);
-            throw new Error(`Failed to parse the API's JSON response. Error: ${e.message}`);
+            throw new Error("The API returned a malformed response, likely due to its content safety filters blocking the complex clinical scenario. Please try rephrasing the scenario.");
         }
 
 
