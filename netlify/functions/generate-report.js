@@ -81,30 +81,63 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
 
         const model = 'gemini-1.5-flash';
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+        
+        const makeApiCall = async (retryCount = 0) => {
+            const dataResponse = await fetch(apiURL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `${dataGenerationPrompt}\n\nClinical Scenario: ${scenario}` }] }],
+                    generationConfig: {
+                        temperature: 0.4,
+                        responseMimeType: "application/json",
+                    },
+                    safetySettings: [
+                        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                    ]
+                })
+            });
 
-        // --- API CALL 1: GET THE REPORT DATA ---
-        const dataResponse = await fetch(apiURL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: `${dataGenerationPrompt}\n\nClinical Scenario: ${scenario}` }] }],
-                generationConfig: {
-                    temperature: 0.4,
-                    responseMimeType: "application/json",
-                }
-            })
-        });
-
-        if (!dataResponse.ok) {
-            console.error("Google API Error (Data Gen):", await dataResponse.text());
-            if (dataResponse.status === 503) {
-                 throw new Error("The AI service is temporarily unavailable. Please try again in a moment.");
+            if (dataResponse.status === 429 && retryCount < 5) {
+                const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
+                await new Promise(res => setTimeout(res, delay));
+                return makeApiCall(retryCount + 1);
             }
-            throw new Error(`Google API (Data Gen) Error: ${dataResponse.status}`);
+            
+            if (!dataResponse.ok) {
+                 throw new Error(`Google API (Data Gen) Error: ${dataResponse.status}`);
+            }
+
+            return dataResponse.json();
+        };
+
+
+        const dataResult = await makeApiCall();
+        
+        if (!dataResult.candidates || dataResult.candidates.length === 0 || !dataResult.candidates[0].content || !dataResult.candidates[0].content.parts || dataResult.candidates[0].content.parts.length === 0) {
+            throw new Error("The API returned an empty or invalid response. This may be due to safety filters blocking the content. Please try a different scenario.");
+        }
+        
+        let reportData;
+        try {
+            const rawText = dataResult.candidates[0].content.parts[0].text;
+            
+            // Robust JSON cleaning logic
+            const match = rawText.match(/\{[\s\S]*\}/);
+            if (!match) {
+                throw new Error("No valid JSON object found in the API response.");
+            }
+            const cleanedJson = match[0];
+            reportData = JSON.parse(cleanedJson);
+
+        } catch (e) {
+            console.error("Failed to parse JSON response from API. Raw text was:", dataResult.candidates[0].content.parts[0].text);
+            throw new Error(`Failed to parse the API's JSON response. Error: ${e.message}`);
         }
 
-        const dataResult = await dataResponse.json();
-        const reportData = JSON.parse(dataResult.candidates[0].content.parts[0].text);
 
         // --- FORMAT THE MAIN REPORT ---
         let formattedReport = '';
