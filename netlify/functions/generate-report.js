@@ -57,19 +57,22 @@ Based ONLY on the 'gasType' from Step 1, you MUST generate physiologically appro
 - **If 'gasType' is "Venous"**: The PO2 MUST be low (strictly between 4.0-6.0 kPa). The O2 saturations (o2hb, so2) MUST also be low (strictly between 60-80%). This is a fundamental, non-negotiable property of venous blood.
 - **If 'gasType' is "Arterial"**: The PO2 and O2 saturation values MUST be consistent with the oxyhemoglobin dissociation curve. A PO2 of 8.0 kPa corresponds to an O2 saturation of ~90%. A normal PO2 (>10.5 kPa) requires a high saturation (>95%).
 
-**Step 3: ANALYZE THE CLINICAL SCENARIO.**
-Now, read the 'scenario' text to determine the primary acid-base disorder and any other expected physiological changes (e.g., electrolyte shifts, lactate levels).
+**Step 3: ANALYZE THE CLINICAL SCENARIO & ITS SEVERITY.**
+Read the 'scenario' text to determine the primary pathology. Crucially, you must correlate the *severity* of the scenario with the *magnitude* of the physiological derangement.
+- **Example - Severe AKI/Anuria**: This scenario MUST result in a severe high-anion-gap metabolic acidosis. This means you must generate a very low pH (<7.20), a very low cHCO₃ (<15 mmol/L), and a critically high Potassium (K⁺ > 5.5 mmol/L).
+- **Example - Severe Sepsis**: This MUST result in a high lactate (>4.0 mmol/L) and a significant metabolic acidosis.
+- A mild condition should have mild changes, while a severe condition like 'anuria' or 'cardiac arrest' demands profoundly abnormal values.
 
 **Step 4: GENERATE ALL OTHER VALUES.**
-Generate the remaining JSON values (pH, PCO2, electrolytes, etc.) to be consistent with the scenario (Step 3). These values MUST co-exist logically with the locked-in oxygenation parameters from Step 2.
+Generate the remaining JSON values (pH, PCO2, electrolytes, etc.) to be consistent with the scenario's severity (Step 3). These values MUST co-exist logically with the locked-in oxygenation parameters from Step 2.
 
 **Step 5: FINAL REVIEW.**
-Before outputting the JSON, perform one final check: does the generated PO2 and O2 saturation strictly match the required 'gasType' as defined in Step 2? If not, you must correct it before finalizing the output.
+Before outputting the JSON, perform one final check: does the generated PO2 and O2 saturation strictly match the required 'gasType' as defined in Step 2? And do the acid-base parameters reflect the scenario's severity? If not, you must correct it.
 
 ### Other Physiological Principles to Maintain
 - **Primary Acid-Base Consistency**: The pH, PCO2, and cHCO3 must match the disorder identified in the scenario (e.g., Respiratory Alkalosis = high pH, low PCO2).
 - **Anion Gap**: Must be appropriate. High anion gaps (> 16 mmol/L) are expected in DKA, lactic acidosis, and toxidromes.
-- **Fluid & Electrolyte Balance**: Electrolytes must reflect the scenario (e.g., Dehydration -> Hypernatremia; Renal Failure -> Hyperkalemia).
+- **Fluid & Electrolyte Balance**: Electrolytes must reflect the scenario (e.g., Dehydration -> Hypernatremia).
 
 ### JSON Structure to Follow
 The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po2) must be in kPa.
