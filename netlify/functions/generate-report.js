@@ -3,13 +3,10 @@ const API_KEY = process.env.GEMINI_API_KEY;
 
 // --- HELPER FUNCTION FOR TEXT FORMATTING ---
 
-// This function takes a long string of text and wraps it to a specified width.
-// It's "smart" because it breaks lines between words, not in the middle of them.
 function wordWrap(text, maxWidth) {
     const lines = [];
     let currentLine = '';
     const words = text.split(' ');
-
     for (const word of words) {
         if ((currentLine + ' ' + word).length > maxWidth) {
             lines.push(currentLine.padEnd(maxWidth, ' '));
@@ -24,8 +21,6 @@ function wordWrap(text, maxWidth) {
     return lines;
 }
 
-
-// This function takes the report data and creates a perfectly aligned string.
 function formatLine(label, value, unit = '', reference = '') {
     const labelCol = label.padEnd(18, ' ');
     const valueCol = (value || '').padEnd(12, ' ');
@@ -35,7 +30,6 @@ function formatLine(label, value, unit = '', reference = '') {
 
 // --- MAIN FUNCTION HANDLER ---
 exports.handler = async (event) => {
-    // Only allow POST requests for security
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
@@ -43,74 +37,52 @@ exports.handler = async (event) => {
     try {
         const { scenario, gasType } = JSON.parse(event.body);
 
-        // --- PROMPT 1: DATA GENERATION ---
+        // --- FINALIZED PROMPT ---
         const dataGenerationPrompt = `
-You are an advanced clinical physiology simulator. Your sole task is to generate a complete and internally consistent blood gas report. 
+You are an advanced clinical physiology simulator. Your sole task is to generate a complete and internally consistent blood gas report.
 
 ### OUTPUT REQUIREMENT
 Your output MUST be a valid JSON object that strictly follows the schema below.
 
 ### SYSTEM MANDATE
-- The laws of physiology and physics ALWAYS override the clinical scenario.
-- The "gasType" variable determines oxygenation values. This is non-negotiable.
+1.  The laws of physiology and physics ALWAYS override the clinical scenario. These laws are inviolable.
+2.  The "gasType" variable determines core oxygenation values. This is non-negotiable.
+3.  The "Clinical Scenario" determines the metabolic and electrolyte state.
 
-### SAMPLE TYPE LAWS
+### CLINICAL SCENARIO INTERPRETATION
+You MUST adjust metabolic and electrolyte values to be physiologically consistent with the provided scenario.
+-   **Example - If scenario is "Diabetic Ketoacidosis (DKA)":**
+    -   You MUST generate a **high \`glucose\`** value (e.g., > 15 mmol/L).
+    -   You MUST generate a **low \`ph\`** and **low \`chco3\`** consistent with severe metabolic acidosis.
+    -   **Potassium (\`k\`)** should be in the **high-normal or high range** on the initial report, reflecting the extracellular shift caused by acidosis, even if total body potassium is low.
+    -   **Sodium (\`na\`)** should be in the **low or low-normal range** to reflect pseudohyponatremia from the high glucose.
+    -   **\`lactate\`** may be mildly elevated.
+
+### SAMPLE TYPE LAWS (NON-NEGOTIABLE)
 
 **1. Venous Gas (Mandatory Rules):**
-- PO₂ must be between 4.0–6.0 kPa.
-- O₂ saturation values (o2hb, so2) must be between 60–80%.
+-   PO₂ MUST be between 4.0 and 6.0 kPa.
+-   O₂ saturation (o2hb, so2) MUST be between 60% and 80%.
 
 **2. Arterial Gas (Mandatory Rules):**
-Values must follow the oxyhemoglobin dissociation curve:
-- PO₂ ~12.0 kPa → SO₂ ~98%.
-- PO₂ ~8.0 kPa → SO₂ ~90%.
-- PO₂ ~5.5 kPa → SO₂ ~75%.
+-   Arterial PO₂ MUST be between 9.0 kPa and 14.0 kPa. There are no exceptions.
+-   Arterial SO₂ MUST be above 92% as a direct consequence.
 
 ### FINAL VALIDATION
-Before outputting JSON:
-- If \`gasType = Venous\` and PO₂ > 6.0 kPa, correct PO₂ to 4.0–6.0 kPa and adjust O₂ saturation to 60–80%.
+Before outputting JSON, review your generated values against ALL mandates and laws above. If any rule is broken, you MUST correct the value before finalizing the output.
 
 ### JSON SCHEMA
-All values must be strings, all gas values in kPa. Units are consistent.
+All values must be strings, all gas values in kPa.
 The value for "bloodType" must equal "\${gasType}".
 
 {
-  "patientId": "string",
-  "lastName": "string",
-  "firstName": "string",
-  "temperature": "string",
-  "fio2": "string",
-  "r": "string",
-  "ph": "string",
-  "pco2": "string",
-  "po2": "string",
-  "na": "string",
-  "k": "string",
-  "cl": "string",
-  "ca": "string",
-  "hct": "string",
-  "glucose": "string",
-  "lactate": "string",
-  "thb": "string",
-  "o2hb": "string",
-  "cohb": "string",
-  "hhb": "string",
-  "methb": "string",
-  "be": "string",
-  "chco3": "string",
-  "aado2": "string",
-  "so2": "string",
-  "chco3st": "string",
-  "p50": "string",
-  "cto2": "string",
-  "bloodType": "\${gasType}"
+  "patientId": "string", "lastName": "string", "firstName": "string", "temperature": "string", "fio2": "string", "r": "string", "ph": "string", "pco2": "string", "po2": "string", "na": "string", "k": "string", "cl": "string", "ca": "string", "hct": "string", "glucose": "string", "lactate": "string", "thb": "string", "o2hb": "string", "cohb": "string", "hhb": "string", "methb": "string", "be": "string", "chco3": "string", "aado2": "string", "so2": "string", "chco3st": "string", "p50": "string", "cto2": "string", "bloodType": "\${gasType}"
 }
 `;
 
         const model = 'gemini-1.5-flash';
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
 
-        // --- API CALL 1: GET THE REPORT DATA ---
         const dataResponse = await fetch(apiURL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -148,8 +120,7 @@ The value for "bloodType" must equal "\${gasType}".
         formattedReport += `Sample type       Blood\n`;
         formattedReport += `Blood Type        ${gasType}\n`;
         formattedReport += '────────────────────────────────────────────────────────\n';
-        
-        // Use correct reference ranges based on gas type
+
         if (gasType === 'Venous') {
             formattedReport += formatLine('pH', reportData.ph, '', '(7.310 - 7.410)');
             formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(5.30 - 6.70)');
@@ -166,7 +137,6 @@ The value for "bloodType" must equal "\${gasType}".
             formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
             formattedReport += '────────────────────────────────────────────────────────\n';
             formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
-            // **FIXED**: Venous-specific reference ranges
             formattedReport += formatLine('O₂ Hb', reportData.o2hb, '%', '(60.0 – 80.0)');
             formattedReport += formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)');
             formattedReport += formatLine('HHb', reportData.hhb, '%', '(20.0 – 40.0)');
@@ -174,9 +144,7 @@ The value for "bloodType" must equal "\${gasType}".
             formattedReport += '────────────────────────────────────────────────────────\n';
             formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
             formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
-            // **FIXED**: Unit corrected to kPa
             formattedReport += formatLine('AaDO₂', reportData.aado2, 'kPa');
-            // **FIXED**: Venous-specific reference range
             formattedReport += formatLine('SO₂', reportData.so2, '%', '(60.0 – 80.0)');
             formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
             formattedReport += formatLine('P50', reportData.p50, 'kPa');
@@ -204,15 +172,13 @@ The value for "bloodType" must equal "\${gasType}".
             formattedReport += '────────────────────────────────────────────────────────\n';
             formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
             formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
-            // **FIXED**: Unit corrected to kPa
             formattedReport += formatLine('AaDO₂', reportData.aado2, 'kPa');
             formattedReport += formatLine('SO₂', reportData.so2, '%', '(95.0 – 99.0)');
             formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
             formattedReport += formatLine('P50', reportData.p50, 'kPa');
             formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
         }
-        
-        // --- ADD THE SUMMARY BOX TO THE FINAL REPORT ---
+
         formattedReport += '\n\n';
         formattedReport += '┌────────────────────────────────────────────────────────┐\n';
         formattedReport += '│ Clinical Summary                                       │\n';
@@ -225,8 +191,7 @@ The value for "bloodType" must equal "\${gasType}".
         }
         
         formattedReport += '└────────────────────────────────────────────────────────┘\n';
-        
-        // --- SEND THE FINAL, COMPLETE REPORT BACK TO THE FRONTEND ---
+
         return {
             statusCode: 200,
             body: JSON.stringify({ report: formattedReport }),
