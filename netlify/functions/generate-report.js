@@ -45,42 +45,69 @@ exports.handler = async (event) => {
 
         // --- PROMPT 1: DATA GENERATION ---
         const dataGenerationPrompt = `
-You are an advanced clinical physiology simulator. Your function is to generate a complete and internally consistent blood gas report. Your output MUST be a valid JSON object.
+You are an advanced clinical physiology simulator. Your sole task is to generate a complete and internally consistent blood gas report. 
 
-### System Mandate: The Laws of Physics Supersede Pathology
-Your primary directive is to obey the physiological laws of the sample type. This is more important than the clinical scenario. A venous gas is ALWAYS a venous gas.
+### OUTPUT REQUIREMENT
+Your output MUST be a valid JSON object that strictly follows the schema below.
 
-### The Unbreakable Law of Sample Type & Oxygenation
-Your most important, non-negotiable task is to obey the 'gasType' variable.
+### SYSTEM MANDATE
+- The laws of physiology and physics ALWAYS override the clinical scenario.  
+- The "gasType" variable determines oxygenation values. This is non-negotiable.  
 
-**1. VENOUS GAS LAW (NON-NEGOTIABLE):**
-- If 'gasType' is "Venous", you MUST generate a PO2 strictly between 4.0 and 6.0 kPa.
-- The corresponding O2 saturations (o2hb, so2) MUST be low, strictly between 60% and 80%.
-- This is a law of physics for this simulation. It applies to every single venous sample, regardless of how sick the patient is.
+### SAMPLE TYPE LAWS
 
-**2. ARTERIAL GAS LAW (Oxyhemoglobin Dissociation Curve):**
-- If 'gasType' is "Arterial", the PO2 and O2 saturation values are bound by a strict physiological link. You MUST ensure they match precisely according to these key points on the curve:
-  - A PO2 of ~12.0 kPa **MUST** have a saturation of ~98%.
-  - A PO2 of ~8.0 kPa **MUST** have a saturation of ~90%.
-  - A PO2 of ~5.5 kPa **MUST** have a saturation of ~75%.
+**1. Venous Gas (Mandatory Rules):**
+- PO₂ must be between 4.0–6.0 kPa.
+- O₂ saturation values (o2hb, so2) must be between 60–80%.  
 
-### Generation Protocol
-Once you have set the oxygenation parameters according to the Unbreakable Law above, you may then proceed to simulate the clinical scenario for all other values.
+**2. Arterial Gas (Mandatory Rules):**
+Values must follow the oxyhemoglobin dissociation curve:
+- PO₂ ~12.0 kPa → SO₂ ~98%.
+- PO₂ ~8.0 kPa → SO₂ ~90%.
+- PO₂ ~5.5 kPa → SO₂ ~75%.
 
-### FINAL CORRECTION MANDATE
-Before outputting the JSON, you MUST perform this final check:
-- **Question**: Did I generate a PO2 value greater than 6.0 kPa for a 'Venous' gas?
-- **Action**: If the answer is yes, this is a critical failure. You MUST correct the PO2 to be within the 4.0-6.0 kPa range and adjust the O2 saturation to the 60-80% range before generating the final JSON.
+### FINAL VALIDATION
+Before outputting JSON:
+- If \`gasType = Venous\` and PO₂ > 6.0 kPa, correct PO₂ to 4.0–6.0 kPa and adjust O₂ saturation to 60–80%.
 
-### JSON Structure to Follow
-The value for the "bloodType" key must be "${gasType}". All gas values must be in kPa.
+### JSON SCHEMA
+All values must be strings, all gas values in **kPa**. Units are consistent.  
+The value for "bloodType" must equal "\${gasType}".
+
+\`\`\`json
 {
-  "patientId": "123456", "lastName": "Smith", "firstName": "Jane", "temperature": "37.0", "fio2": "0.21", "r": "0.80",
-  "ph": "7.35", "pco2": "5.50", "po2": "12.00", "na": "140", "k": "4.1", "cl": "100", "ca": "1.20", "hct": "45",
-  "glucose": "5.5", "lactate": "1.2", "thb": "15.0", "o2hb": "98.0", "cohb": "1.1", "hhb": "1.9", "methb": "0.6",
-  "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "chco3st": "25.0", "p50": "26.0", "cto2": "20.0"
+  "patientId": "string",
+  "lastName": "string",
+  "firstName": "string",
+  "temperature": "string", 
+  "fio2": "string",
+  "r": "string",
+  "ph": "string",
+  "pco2": "string",
+  "po2": "string",
+  "na": "string",
+  "k": "string",
+  "cl": "string",
+  "ca": "string",
+  "hct": "string",
+  "glucose": "string",
+  "lactate": "string",
+  "thb": "string",
+  "o2hb": "string",
+  "cohb": "string",
+  "hhb": "string",
+  "methb": "string",
+  "be": "string",
+  "chco3": "string",
+  "aado2": "string",
+  "so2": "string",
+  "chco3st": "string",
+  "p50": "string",
+  "cto2": "string",
+  "bloodType": "\${gasType}"
 }
-`;
+\`\`\`
+;
 
         const model = 'gemini-1.5-flash';
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
