@@ -44,7 +44,7 @@ exports.handler = async (event) => {
         const { scenario, gasType } = JSON.parse(event.body);
 
         // --- PROMPT 1: DATA GENERATION ---
-        const dataGenerationPrompt = 
+        const dataGenerationPrompt = `
 You are an advanced clinical physiology simulator. Your sole task is to generate a complete and internally consistent blood gas report. 
 
 ### OUTPUT REQUIREMENT
@@ -154,37 +154,64 @@ The value for "bloodType" must equal "\${gasType}".
             formattedReport += formatLine('pH', reportData.ph, '', '(7.310 - 7.410)');
             formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(5.30 - 6.70)');
             formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(4.00 - 6.70)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
+            formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
+            formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
+            formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('HCT', reportData.hct, '%', '(35.0 – 50.0)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
+            formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
+            // **FIXED**: Venous-specific reference ranges
+            formattedReport += formatLine('O₂ Hb', reportData.o2hb, '%', '(60.0 – 80.0)');
+            formattedReport += formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)');
+            formattedReport += formatLine('HHb', reportData.hhb, '%', '(20.0 – 40.0)');
+            formattedReport += formatLine('MetHb', reportData.methb, '%', '(0.4 – 1.5)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
+            formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
+            // **FIXED**: Unit corrected to kPa
+            formattedReport += formatLine('AaDO₂', reportData.aado2, 'kPa');
+            // **FIXED**: Venous-specific reference range
+            formattedReport += formatLine('SO₂', reportData.so2, '%', '(60.0 – 80.0)');
+            formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
+            formattedReport += formatLine('P50', reportData.p50, 'kPa');
+            formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
         } else { // Arterial
             formattedReport += formatLine('pH', reportData.ph, '', '(7.350 - 7.450)');
             formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(4.67 - 6.00)');
             formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(10.67 - 13.33)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
+            formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
+            formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
+            formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('HCT', reportData.hct, '%', '(35.0 – 50.0)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
+            formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
+            formattedReport += formatLine('O₂ Hb', reportData.o2hb, '%', '(95.0 – 99.0)');
+            formattedReport += formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)');
+            formattedReport += formatLine('HHb', reportData.hhb, '%', '(1.0 – 5.0)');
+            formattedReport += formatLine('MetHb', reportData.methb, '%', '(0.4 – 1.5)');
+            formattedReport += '────────────────────────────────────────────────────────\n';
+            formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
+            formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
+            // **FIXED**: Unit corrected to kPa
+            formattedReport += formatLine('AaDO₂', reportData.aado2, 'kPa');
+            formattedReport += formatLine('SO₂', reportData.so2, '%', '(95.0 – 99.0)');
+            formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
+            formattedReport += formatLine('P50', reportData.p50, 'kPa');
+            formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
         }
-
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
-        formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
-        formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
-        formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('HCT', reportData.hct, '%', '(35.0 – 50.0)');
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
-        formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
-        formattedReport += formatLine('O₂ Hb', reportData.o2hb, '%', '(95.0 – 99.0)');
-        formattedReport += formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)');
-        formattedReport += formatLine('HHb', reportData.hhb, '%', '(1.0 – 5.0)');
-        formattedReport += formatLine('MetHb', reportData.methb, '%', '(0.4 – 1.5)');
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
-        formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
-        formattedReport += formatLine('AaDO₂', reportData.aado2, 'mmHg');
-        formattedReport += formatLine('SO₂', reportData.so2, '%', '(75.0 – 99.0)');
-        formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
-        formattedReport += formatLine('P50', reportData.p50, 'mmol/L');
-        formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
-       
+        
         // --- ADD THE SUMMARY BOX TO THE FINAL REPORT ---
         formattedReport += '\n\n';
         formattedReport += '┌────────────────────────────────────────────────────────┐\n';
@@ -213,4 +240,3 @@ The value for "bloodType" must equal "\${gasType}".
         };
     }
 };
-
