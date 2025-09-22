@@ -44,8 +44,7 @@ exports.handler = async (event) => {
         const { scenario, gasType } = JSON.parse(event.body);
 
         // --- PROMPT 1: DATA GENERATION ---
-        const dataGenerationPrompt = `
-const dataGenerationPrompt = `
+        const dataGenerationPrompt = 
 You are an advanced clinical physiology simulator. Your sole task is to generate a complete and internally consistent blood gas report. 
 
 ### OUTPUT REQUIREMENT
