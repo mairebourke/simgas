@@ -45,20 +45,21 @@ exports.handler = async (event) => {
 
         // --- PROMPT 1: DATA GENERATION ---
         const dataGenerationPrompt = `
+const dataGenerationPrompt = `
 You are an advanced clinical physiology simulator. Your sole task is to generate a complete and internally consistent blood gas report. 
 
 ### OUTPUT REQUIREMENT
 Your output MUST be a valid JSON object that strictly follows the schema below.
 
 ### SYSTEM MANDATE
-- The laws of physiology and physics ALWAYS override the clinical scenario.  
-- The "gasType" variable determines oxygenation values. This is non-negotiable.  
+- The laws of physiology and physics ALWAYS override the clinical scenario.
+- The "gasType" variable determines oxygenation values. This is non-negotiable.
 
 ### SAMPLE TYPE LAWS
 
 **1. Venous Gas (Mandatory Rules):**
 - PO₂ must be between 4.0–6.0 kPa.
-- O₂ saturation values (o2hb, so2) must be between 60–80%.  
+- O₂ saturation values (o2hb, so2) must be between 60–80%.
 
 **2. Arterial Gas (Mandatory Rules):**
 Values must follow the oxyhemoglobin dissociation curve:
@@ -71,15 +72,14 @@ Before outputting JSON:
 - If \`gasType = Venous\` and PO₂ > 6.0 kPa, correct PO₂ to 4.0–6.0 kPa and adjust O₂ saturation to 60–80%.
 
 ### JSON SCHEMA
-All values must be strings, all gas values in **kPa**. Units are consistent.  
+All values must be strings, all gas values in kPa. Units are consistent.
 The value for "bloodType" must equal "\${gasType}".
 
-\`\`\`json
 {
   "patientId": "string",
   "lastName": "string",
   "firstName": "string",
-  "temperature": "string", 
+  "temperature": "string",
   "fio2": "string",
   "r": "string",
   "ph": "string",
@@ -106,8 +106,7 @@ The value for "bloodType" must equal "\${gasType}".
   "cto2": "string",
   "bloodType": "\${gasType}"
 }
-\`\`\`
-;
+`;
 
         const model = 'gemini-1.5-flash';
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
