@@ -30,16 +30,6 @@ function formatLine(label, value, unit = '', reference = '') {
 
 // --- MAIN FUNCTION HANDLER ---
 exports.handler = async (event) => {
-    // --- TEMPORARY DEBUGGING ---
-    // This will log information about the API key the function is actually seeing.
-    const apiKeyForDebug = process.env.GEMINI_API_KEY;
-    if (apiKeyForDebug) {
-        console.log(`DEBUG: API Key found. Starts with: ${apiKeyForDebug.substring(0, 4)}, Ends with: ${apiKeyForDebug.slice(-4)}`);
-    } else {
-        console.log("DEBUG: CRITICAL ERROR: GEMINI_API_KEY environment variable was not found by the function!");
-    }
-    // --- END DEBUGGING ---
-
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
@@ -126,75 +116,75 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         formattedReport += `R                 ${reportData.r || ''}\n`;
         formattedReport += `Sample type       Blood\n`;
         formattedReport += `Blood Type        ${gasType}\n`;
-        formattedReport += '────────────────────────────────────────────────────────\n';
+    	formattedReport += '────────────────────────────────────────────────────────\n';
         
         if (gasType === 'Venous') {
             formattedReport += formatLine('pH', reportData.ph, '', '(7.310 - 7.410)');
-            formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(5.30 - 6.70)');
-            formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(4.00 - 6.70)');
+          	formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(5.30 - 6.70)');
+          	formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(4.00 - 6.70)');
         } else {
-            formattedReport += formatLine('pH', reportData.ph, '', '(7.350 - 7.450)');
-            formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(4.67 - 6.00)');
-            formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(10.67 - 13.33)');
+          	formattedReport += formatLine('pH', reportData.ph, '', '(7.350 - 7.450)');
+          	formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(4.67 - 6.00)');
+          	formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(10.67 - 13.33)');
         }
 
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
-        formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
-        formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
-        formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('HCT', reportData.hct, '%', '(35.0 – 50.0)');
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
-        formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
-        formattedReport += formatLine('O₂ Hb', reportData.o2hb, '%', '(95.0 – 99.0)');
-        formattedReport += formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)');
-        formattedReport += formatLine('HHb', reportData.hhb, '%', '(1.0 – 5.0)');
-        formattedReport += formatLine('MetHb', reportData.methb, '%', '(0.4 – 1.5)');
-        formattedReport += '────────────────────────────────────────────────────────\n';
-        formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
-        formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
-        formattedReport += formatLine('AaDO₂', reportData.aado2, 'mmHg');
-        formattedReport += formatLine('SO₂', reportData.so2, '%', '(75.0 – 99.0)');
-        formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
-        formattedReport += formatLine('P50', reportData.p50, 'mmol/L');
-        formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
+      	formattedReport += '────────────────────────────────────────────────────────\n';
+  	formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
+      	formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
+  	formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
+      	formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
+  	formattedReport += '────────────────────────────────────────────────────────\n';
+  	formattedReport += formatLine('HCT', reportData.hct, '%', '(35.0 – 50.0)');
+  	formattedReport += '────────────────────────────────────────────────────────\n';
+  	formattedReport += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
+      	formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
+  	formattedReport += '────────────────────────────────────────────────────────\n';
+  	formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
+      	formattedReport += formatLine('O₂ Hb', reportData.o2hb, '%', '(95.0 – 99.0)');
+      	formattedReport += formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)');
+      	formattedReport += formatLine('HHb', reportData.hhb, '%', '(1.0 – 5.0)');
+      	formattedReport += formatLine('MetHb', reportData.methb, '%', '(0.4 – 1.5)');
+  	formattedReport += '────────────────────────────────────────────────────────\n';
+  	formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
+      	formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
+  	formattedReport += formatLine('AaDO₂', reportData.aado2, 'mmHg');
+  	formattedReport += formatLine('SO₂', reportData.so2, '%', '(75.0 – 99.0)');
+  	formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
+  	formattedReport += formatLine('P50', reportData.p50, 'mmol/L');
+  	formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
         
-        formattedReport += '\n\n';
-        formattedReport += '┌────────────────────────────────────────────────────────┐\n';
-        formattedReport += '│ Interpretation                                         │\n';
-        formattedReport += '├────────────────────────────────────────────────────────┤\n';
+      	formattedReport += '\n\n';
+  	formattedReport += '┌────────────────────────────────────────────────────────┐\n';
+      	formattedReport += '│ Interpretation                                         │\n';
+      	formattedReport += '├────────────────────────────────────────────────────────┤\n';
         
-        const scenarioLine = `Scenario: ${scenario}`;
-        const wrappedScenario = wordWrap(scenarioLine, 54);
-        for (const line of wrappedScenario) {
-            formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
-        }
+      	const scenarioLine = `Scenario: ${scenario}`;
+      	const wrappedScenario = wordWrap(scenarioLine, 54);
+      	for (const line of wrappedScenario) {
+          	formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
+      	}
 
-        formattedReport += `│ ${''.padEnd(54, ' ')} │\n`;
+      	formattedReport += `│ ${''.padEnd(54, ' ')} │\n`;
         
-        const interpretationLine = `Interpretation: ${reportData.interpretation || 'Not provided'}`;
-        const wrappedInterpretation = wordWrap(interpretationLine, 54);
-        for (const line of wrappedInterpretation) {
-            formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
-        }
+      	const interpretationLine = `Interpretation: ${reportData.interpretation || 'Not provided'}`;
+      	const wrappedInterpretation = wordWrap(interpretationLine, 54);
+      	for (const line of wrappedInterpretation) {
+          	formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
+      	}
         
-        formattedReport += '└────────────────────────────────────────────────────────┘\n';
+      	formattedReport += '└────────────────────────────────────────────────────────┘\n';
         
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ report: formattedReport }),
-        };
+      	return {
+          	statusCode: 200,
+          	body: JSON.stringify({ report: formattedReport }),
+      	};
 
-    } catch (error) {
-        console.error('Error in Netlify function:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: error.message || 'Failed to generate report. Check function logs.' }),
-        };
-    }
+  	} catch (error) {
+      	console.error('Error in Netlify function:', error);
+      	return {
+          	statusCode: 500,
+          	body: JSON.stringify({ error: error.message || 'Failed to generate report. Check function logs.' }),
+      	};
+  	}
 };
 
