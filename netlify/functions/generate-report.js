@@ -2,21 +2,21 @@
 const API_KEY = process.env.GEMINI_API_KEY;
 
 // --- HELPER FUNCTION FOR TEXT FORMATTING ---
-
 function wordWrap(text, maxWidth) {
     const lines = [];
     let currentLine = '';
     const words = text.split(' ');
+
     for (const word of words) {
         if ((currentLine + ' ' + word).length > maxWidth) {
-            lines.push(currentLine.padEnd(maxWidth, ' '));
+            lines.push(currentLine);
             currentLine = word;
         } else {
             currentLine += (currentLine ? ' ' : '') + word;
         }
     }
     if (currentLine) {
-        lines.push(currentLine.padEnd(maxWidth, ' '));
+        lines.push(currentLine);
     }
     return lines;
 }
@@ -37,50 +37,40 @@ exports.handler = async (event) => {
     try {
         const { scenario, gasType } = JSON.parse(event.body);
 
-        // --- FINALIZED PROMPT ---
+        // --- PROMPT 1: DATA AND INTERPRETATION GENERATION (MODIFIED) ---
+        // Scenario-specific mandates have been removed to allow for more flexible interpretation based on core principles.
         const dataGenerationPrompt = `
-You are an advanced clinical physiology simulator. Your sole task is to generate a complete and internally consistent blood gas report.
+You are an advanced clinical physiology simulator. Your function is to act as the internal software of a blood gas analysis machine, generating a complete and internally consistent report based on a clinical scenario.
 
-### OUTPUT REQUIREMENT
-Your output MUST be a valid JSON object that strictly follows the schema below.
+Your output MUST be a valid JSON object and nothing else. Do not use markdown or any text outside of the JSON structure.
 
-### SYSTEM MANDATE
-1.  The laws of physiology and physics ALWAYS override the clinical scenario. These laws are inviolable.
-2.  The "gasType" variable determines core oxygenation values. This is non-negotiable.
-3.  The "Clinical Scenario" determines the metabolic and electrolyte state.
+### Core Directive: Pathophysiological Consistency
+Your primary task is to ensure every single value in the JSON output is a direct, logical, and quantifiable consequence of the provided clinical scenario. The entire report must tell a single, coherent clinical story.
 
-### CLINICAL SCENARIO INTERPRETATION
-You MUST adjust metabolic and electrolyte values to be physiologically consistent with the provided scenario.
--   **Example - If scenario is "Diabetic Ketoacidosis (DKA)":**
-    -   You MUST generate a **high \`glucose\`** value (e.g., > 15 mmol/L).
-    -   You MUST generate a **low \`ph\`** and **low \`chco3\`** consistent with severe metabolic acidosis.
-    -   **Potassium (\`k\`)** should be in the **high-normal or high range** on the initial report, reflecting the extracellular shift caused by acidosis, even if total body potassium is low.
-    -   **Sodium (\`na\`)** should be in the **low or low-normal range** to reflect pseudohyponatremia from the high glucose.
-    -   **\`lactate\`** may be mildly elevated.
+### Governing Physiological Principles (You MUST adhere to these)
+1.  **Acid-Base Balance (Henderson-Hasselbalch Relationship)**: The values for pH, pco2, and chco3 MUST be mathematically consistent. A change in one directly impacts the others. For example, a high pco2 (acid) MUST result in a lower pH unless compensated by a high chco3 (base). An acute acidosis will have a much lower pH for a given pco2 than a chronic, compensated state.
+2.  **Anion Gap**: The Anion Gap, calculated as (Na⁺ - (Cl⁻ + cHCO₃)), MUST be appropriate for the scenario. In cases of DKA, severe lactic acidosis, or certain toxidromes, you MUST generate Na⁺, Cl⁻, and cHCO₃ values that result in a high anion gap (typically > 16 mmol/L). In other cases, it should be normal (8-16 mmol/L).
+3.  **Oxygenation & A-a Gradient**: The Alveolar-arterial (A-a) gradient (AaDO₂) MUST reflect the scenario's impact on the lungs. For a patient on room air (fio2=0.21), the AaDO₂ should be low. In cases of pneumonia, ARDS, PE, or pulmonary edema, the AaDO₂ MUST be significantly elevated, indicating impaired oxygen transfer from alveoli to blood. A high fio2 with a persistently low po2 implies a very large A-a gradient.
+4.  **Compensation**: Metabolic and respiratory compensation must be logical. A chronic respiratory acidosis (e.g., COPD) MUST show renal compensation (elevated cHCO₃). An acute event (e.g., asthma attack, seizure) will show little to no metabolic compensation (normal or near-normal cHCO₃).
 
-### SAMPLE TYPE LAWS (NON-NEGOTIABLE)
+### Scenario-Specific Mandates
+- **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value.
 
-**1. Venous Gas (Mandatory Rules):**
--   PO₂ MUST be between 4.0 and 6.0 kPa.
--   O₂ saturation (o2hb, so2) MUST be between 60% and 80%.
+### Final Review Instruction
+Before outputting the JSON, internally double-check all generated values against the Governing Physiological Principles and Scenario-Specific Mandates to ensure complete consistency.
 
-**2. Arterial Gas (Mandatory Rules):**
--   Arterial PO₂ MUST be between 9.0 kPa and 14.0 kPa. There are no exceptions.
--   Arterial SO₂ MUST be above 92% as a direct consequence.
-
-### FINAL VALIDATION
-Before outputting JSON, review your generated values against ALL mandates and laws above. If any rule is broken, you MUST correct the value before finalizing the output.
-
-### JSON SCHEMA
-All values must be strings, all gas values in kPa.
-The value for "bloodType" must equal "\${gasType}".
-
+### JSON Structure to Follow
+The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po2) must be in kPa.
 {
-  "patientId": "string", "lastName": "string", "firstName": "string", "temperature": "string", "fio2": "string", "r": "string", "ph": "string", "pco2": "string", "po2": "string", "na": "string", "k": "string", "cl": "string", "ca": "string", "hct": "string", "glucose": "string", "lactate": "string", "thb": "string", "o2hb": "string", "cohb": "string", "hhb": "string", "methb": "string", "be": "string", "chco3": "string", "aado2": "string", "so2": "string", "chco3st": "string", "p50": "string", "cto2": "string", "bloodType": "\${gasType}"
+  "patientId": "123456", "lastName": "Smith", "firstName": "Jane", "temperature": "37.0", "fio2": "0.21", "r": "0.80",
+  "ph": "7.35", "pco2": "5.50", "po2": "12.00", "na": "140", "k": "4.1", "cl": "100", "ca": "1.20", "hct": "45",
+  "glucose": "5.5", "lactate": "1.2", "thb": "15.0", "o2hb": "98.0", "cohb": "1.1", "hhb": "1.9", "methb": "0.6",
+  "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "chco3st": "25.0", "p50": "26.0", "cto2": "20.0",
+  "interpretation": "Normal Acid-Base Balance"
 }
 `;
 
-        const model = 'gemini-1.5-flash';
+        const model = 'gemini-2.5-flash-preview-05-20'; // <-- FIX: Updated to a valid model name
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
 
         const dataResponse = await fetch(apiURL, {
@@ -104,7 +94,14 @@ The value for "bloodType" must equal "\${gasType}".
         }
 
         const dataResult = await dataResponse.json();
-        const reportData = JSON.parse(dataResult.candidates[0].content.parts[0].text);
+        let reportData;
+        try {
+            reportData = JSON.parse(dataResult.candidates[0].content.parts[0].text);
+        } catch (parseError) {
+            console.error("Failed to parse JSON from API:", dataResult.candidates[0].content.parts[0].text);
+            throw new Error("The AI returned a malformed data structure. Please try again.");
+        }
+
 
         // --- FORMAT THE MAIN REPORT ---
         let formattedReport = '';
@@ -120,68 +117,45 @@ The value for "bloodType" must equal "\${gasType}".
         formattedReport += `Sample type       Blood\n`;
         formattedReport += `Blood Type        ${gasType}\n`;
         formattedReport += '────────────────────────────────────────────────────────\n';
-
+        
         if (gasType === 'Venous') {
             formattedReport += formatLine('pH', reportData.ph, '', '(7.310 - 7.410)');
             formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(5.30 - 6.70)');
             formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(4.00 - 6.70)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
-            formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
-            formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
-            formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('HCT', reportData.hct, '%', '(35.0 – 50.0)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
-            formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
-            formattedReport += formatLine('O₂ Hb', reportData.o2hb, '%', '(60.0 – 80.0)');
-            formattedReport += formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)');
-            formattedReport += formatLine('HHb', reportData.hhb, '%', '(20.0 – 40.0)');
-            formattedReport += formatLine('MetHb', reportData.methb, '%', '(0.4 – 1.5)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
-            formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
-            formattedReport += formatLine('AaDO₂', reportData.aado2, 'kPa');
-            formattedReport += formatLine('SO₂', reportData.so2, '%', '(60.0 – 80.0)');
-            formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
-            formattedReport += formatLine('P50', reportData.p50, 'kPa');
-            formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
-        } else { // Arterial
+        } else {
             formattedReport += formatLine('pH', reportData.ph, '', '(7.350 - 7.450)');
             formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(4.67 - 6.00)');
             formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(10.67 - 13.33)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
-            formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
-            formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
-            formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('HCT', reportData.hct, '%', '(35.0 – 50.0)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
-            formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
-            formattedReport += formatLine('O₂ Hb', reportData.o2hb, '%', '(95.0 – 99.0)');
-            formattedReport += formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)');
-            formattedReport += formatLine('HHb', reportData.hhb, '%', '(1.0 – 5.0)');
-            formattedReport += formatLine('MetHb', reportData.methb, '%', '(0.4 – 1.5)');
-            formattedReport += '────────────────────────────────────────────────────────\n';
-            formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
-            formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
-            formattedReport += formatLine('AaDO₂', reportData.aado2, 'kPa');
-            formattedReport += formatLine('SO₂', reportData.so2, '%', '(95.0 – 99.0)');
-            formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
-            formattedReport += formatLine('P50', reportData.p50, 'kPa');
-            formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
         }
 
+        formattedReport += '────────────────────────────────────────────────────────\n';
+        formattedReport += formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)');
+        formattedReport += formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)');
+        formattedReport += formatLine('Cl⁻', reportData.cl, 'mmol/L', '(98.0 - 107.0)');
+        formattedReport += formatLine('Ca²⁺', reportData.ca, 'mmol/L', '(1.120 - 1.320)');
+        formattedReport += '────────────────────────────────────────────────────────\n';
+        formattedReport += formatLine('HCT', reportData.hct, '%', '(35.0 – 50.0)');
+        formattedReport += '────────────────────────────────────────────────────────\n';
+        formattedReport += formatLine('Glucose', reportData.glucose, 'mmol/L', '(3.3 – 6.1)');
+        formattedReport += formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)');
+        formattedReport += '────────────────────────────────────────────────────────\n';
+        formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)');
+        formattedReport += formatLine('O₂ Hb', reportData.o2hb, '%', '(95.0 – 99.0)');
+        formattedReport += formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)');
+        formattedReport += formatLine('HHb', reportData.hhb, '%', '(1.0 – 5.0)');
+        formattedReport += formatLine('MetHb', reportData.methb, '%', '(0.4 – 1.5)');
+        formattedReport += '────────────────────────────────────────────────────────\n';
+        formattedReport += formatLine('BE', reportData.be, 'mmol/L', '(-2.3 – 2.3)');
+        formattedReport += formatLine('cHCO₃', reportData.chco3, 'mmol/L');
+        formattedReport += formatLine('AaDO₂', reportData.aado2, 'mmHg');
+        formattedReport += formatLine('SO₂', reportData.so2, '%', '(75.0 – 99.0)');
+        formattedReport += formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)');
+        formattedReport += formatLine('P50', reportData.p50, 'mmol/L');
+        formattedReport += formatLine('ctO₂', reportData.cto2, 'Vol %');
+        
         formattedReport += '\n\n';
         formattedReport += '┌────────────────────────────────────────────────────────┐\n';
-        formattedReport += '│ Clinical Summary                                       │\n';
+        formattedReport += '│ Interpretation                                         │\n';
         formattedReport += '├────────────────────────────────────────────────────────┤\n';
         
         const scenarioLine = `Scenario: ${scenario}`;
@@ -189,9 +163,17 @@ The value for "bloodType" must equal "\${gasType}".
         for (const line of wrappedScenario) {
             formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
         }
+
+        formattedReport += `│ ${''.padEnd(54, ' ')} │\n`;
+        
+        const interpretationLine = `Interpretation: ${reportData.interpretation || 'Not provided'}`;
+        const wrappedInterpretation = wordWrap(interpretationLine, 54);
+        for (const line of wrappedInterpretation) {
+            formattedReport += `│ ${line.padEnd(54, ' ')} │\n`;
+        }
         
         formattedReport += '└────────────────────────────────────────────────────────┘\n';
-
+        
         return {
             statusCode: 200,
             body: JSON.stringify({ report: formattedReport }),
