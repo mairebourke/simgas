@@ -1,5 +1,103 @@
 import { getStore } from "@netlify/blobs";
 
+function stripCodeFences(s) {
+if (!s) return '';
+const t = s.trim();
+return t.startsWith('```') ? t.replace(/^```[a-zA-Z]*\n?/, '').replace(/```\s*$/, '').trim() : t;
+}
+function extractFirstJsonObject(s) {
+let depth = 0; let start = -1;
+for (let i = 0; i < s.length; i++) {
+const c = s[i];
+if (c === '{') { if (depth === 0) start = i; depth++; }
+else if (c === '}') { depth--; if (depth === 0 && start !== -1) return s.slice(start, i + 1); }
+}
+return null;
+}
+function safeParseModelJson(text) {
+const raw = stripCodeFences(text);
+try { return JSON.parse(raw); } catch (e1) {
+const candidate = extractFirstJsonObject(raw);
+if (candidate) {
+try { return JSON.parse(candidate); } catch (e2) {}
+}
+const snippet = String(text).slice(0, 240);
+throw new Error(`Model did not return valid JSON. Starts with: ${JSON.stringify(snippet)}`);
+}
+}
+
+
+// 2) Wrap fetch with timeout (optional but recommended)
+function withTimeout(ms) {
+const ac = new AbortController();
+const t = setTimeout(() => ac.abort(), ms);
+return { signal: ac.signal, cancel: () => clearTimeout(t) };
+}
+
+
+// 3) Replace your Gemini call + parsing block with this
+async function generateReportJSON({ apiURL, scenario, gasType }) {
+const body = {
+contents: [{ parts: [{ text: `${dataGenerationPrompt}\n\nClinical Scenario: ${scenario}` }] }],
+generationConfig: { temperature: 0.4, responseMimeType: 'application/json' }
+};
+
+
+const { signal, cancel } = withTimeout(9000);
+const res = await fetch(apiURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
+cancel();
+
+
+// Handle transport/API errors explicitly and early
+const rawText = await res.text();
+if (!res.ok) {
+// Google returns structured errors as JSON; include a short snippet to debug
+throw new Error(`Google API ${res.status}: ${rawText.slice(0, 300)}`);
+}
+
+
+let parsed;
+try {
+parsed = JSON.parse(rawText);
+} catch (e) {
+// Extremely rare: non-JSON HTTP 200; surface snippet
+throw new Error(`Non-JSON 200 from Google: ${rawText.slice(0, 300)}`);
+}
+
+
+if (parsed?.error) {
+// Example: { error: { code, message, status } }
+throw new Error(`Google API error: ${parsed.error.message || 'unknown error'}`);
+}
+
+
+const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+if (!text) {
+throw new Error(`Empty model content. Full payload starts: ${rawText.slice(0, 300)}`);
+}
+
+
+// Safely parse the model's JSON content (tolerates code fences / extra prose)
+return safeParseModelJson(text);
+}
+
+
+// 4) Example usage in your handler (replace your current call site):
+// const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+// const reportData = await generateReportJSON({ apiURL, scenario, gasType });
+
+
+// 5) Optional: when catching errors, persist a concise message to your blob store
+// catch (error) {
+// const message = error?.message || 'Background task failed';
+// await reportStore.setJSON(jobId, { status: 'failed', error: message });
+// }
+
+
+// Notes:
+// - The original failure "Unexpected token 'e', 'error deco'..." means the string you tried to JSON.parse
+// started with something like "error decoding ..." instead of '{'. This patch prevents raw JSON.parse on
+// non-JSON, handles Google error objects, and gives you debuggable snippets without crashing the function.
 // --- HELPER FUNCTIONS (Copied from your original file) ---
 function wordWrap(text, maxWidth) {
     const lines = [];
