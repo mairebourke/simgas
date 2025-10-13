@@ -1,43 +1,31 @@
 import { getStore } from "@netlify/blobs";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 
-export default async (req, context) => {
+export default async (req) => {
     try {
         const { scenario, gasType } = await req.json();
-        const jobId = uuidv4(); // Create a unique ID for this job
-        const jobStore = getStore("reports");
+        const jobId = randomUUID(); // Use built-in crypto module
+        const reportStore = getStore("reports");
 
         // Save the initial job status and input
-        await jobStore.setJSON(jobId, {
+        await reportStore.setJSON(jobId, {
             status: "processing",
             scenario: scenario,
             gasType: gasType,
             timestamp: new Date().toISOString()
         });
-
-        // Invoke the background function asynchronously
-        context.callbackWaitsForEmptyEventLoop = false;
-        context.clientContext.custom = {
-            invoke: "background",
-            jobId: jobId
-        };
-        const backgroundFunctionUrl = new URL(
-           "/.netlify/functions/generate-report-process-background",
-            context.site.url
-        );
         
-        // We don't wait for this fetch to complete
-        fetch(backgroundFunctionUrl, {
+        // Netlify's mechanism to invoke a function in the background.
+        // We don't wait for this to finish.
+        fetch(`${process.env.URL}/.netlify/functions/generate-report-process-background`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "x-netlify-lambda-v1-type": "background" },
             body: JSON.stringify({ jobId }),
         });
         
-        // Immediately return the job ID to the user
+        // Immediately return the job ID to the user's browser
         return new Response(JSON.stringify({ jobId }), {
-            status: 202,
+            status: 202, // 202 Accepted
             headers: { "Content-Type": "application/json" },
         });
 
@@ -48,11 +36,5 @@ export default async (req, context) => {
             headers: { "Content-Type": "application/json" },
         });
     }
-};
-
-export const config = {
-    path: "/.netlify/functions/generate-report-invoke",
-    // This is NOT a background function
-    name: "Report Generation Invoker",
 };
 
