@@ -160,7 +160,7 @@
 
        /**
         * Calls our own secure Netlify Function to generate the report.
-        * NEW: Now includes a 28-second timeout.
+        * NEW: Now includes a 30-second timeout.
         */
         async function callGeminiAPI(scenario) {
             const selectedGasType = document.querySelector('input[name="gasType"]:checked').value;
@@ -168,7 +168,7 @@
             
             // NEW: AbortController for managing timeouts
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 28000); // 28 seconds
+            const timeoutId = setTimeout(() => controller.abort(), 29990); // 29 seconds
 
             try {
                 const response = await fetch(functionURL, {
