@@ -1,4 +1,4 @@
-import { getStore } from "@netlify/blobs";
+const { getStore } = require("@netlify/blobs");
 
 // --- HELPER FUNCTIONS ---
 function wordWrap(text, maxWidth) {
@@ -44,10 +44,9 @@ function getDobFromScenario(scenario) {
     return `${format(birthDay)}/${format(birthMonth)}/${birthYear}`;
 }
 
-
 // --- MAIN BACKGROUND HANDLER ---
-export default async (req) => {
-    const { jobId } = await req.json();
+exports.handler = async (event) => {
+    const { jobId } = JSON.parse(event.body);
     const reportStore = getStore("reports");
 
     try {
@@ -57,7 +56,6 @@ export default async (req) => {
         const { scenario, gasType } = jobData;
         const API_KEY = process.env.GEMINI_API_KEY;
 
-        // --- REFACTORED PROMPT TO BE SYNTAX-SAFE ---
         const promptLines = [
             'You are an advanced clinical physiology simulator. Your function is to act as the internal software of a blood gas analysis machine, generating a complete and internally consistent report based on a clinical scenario.',
             'Your output MUST be a valid JSON object and nothing else. Do not use markdown, notes, or any text outside of the JSON structure.',
@@ -184,11 +182,5 @@ export default async (req) => {
             error: error.message || "An unknown error occurred in the background task.",
         });
     }
-};
-
-export const config = {
-  path: "/.netlify/functions/generate-report-process-background",
-  name: "Report Generation Background Task",
-  generator: "@netlify/generator-background@2.0.0",
 };
 
