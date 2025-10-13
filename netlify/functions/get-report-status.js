@@ -1,43 +1,39 @@
 import { getStore } from "@netlify/blobs";
 
-export default async (req, context) => {
+export const handler = async (req) => {
+    // Get the jobId from the query string, e.g., /?jobId=...
+    const jobId = req.queryStringParameters.jobId;
+
+    if (!jobId) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "jobId is required." }),
+        };
+    }
+
     try {
-        const url = new URL(req.url);
-        const jobId = url.searchParams.get("jobId");
-
-        if (!jobId) {
-            return new Response(JSON.stringify({ error: "Job ID is required." }), {
-                status: 400,
-                headers: { "Content-Type": "application/json" },
-            });
-        }
-
-        const jobStore = getStore("reports");
-        const jobData = await jobStore.get(jobId, { type: "json" });
+        const reportStore = getStore("reports");
+        const jobData = await reportStore.get(jobId, { type: "json" });
 
         if (!jobData) {
-            return new Response(JSON.stringify({ error: "Job not found." }), {
-                status: 404,
-                headers: { "Content-Type": "application/json" },
-            });
+            return {
+                statusCode: 404,
+                body: JSON.stringify({ error: "Job not found." }),
+            };
         }
-
-        return new Response(JSON.stringify(jobData), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-        });
+        
+        // Return the current status of the job (e.g., "processing", "completed", "failed")
+        return {
+            statusCode: 200,
+            body: JSON.stringify(jobData),
+        };
 
     } catch (error) {
-        console.error("Status Check Error:", error);
-        return new Response(JSON.stringify({ error: "Failed to get report status." }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-        });
+        console.error("Get Status Error:", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: "Failed to retrieve report status." }),
+        };
     }
-};
-
-export const config = {
-    path: "/.netlify/functions/get-report-status",
-    name: "Report Status Checker",
 };
 
