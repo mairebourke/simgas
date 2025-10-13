@@ -9,9 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+        body { font-family: 'Inter', sans-serif; }
         #reportOutput {
             font-family: 'Roboto Mono', monospace;
             white-space: pre;
@@ -58,32 +56,22 @@
                 <div class="flex items-center space-x-6">
                     <div class="flex items-center">
                         <input id="arterialRadio" name="gasType" type="radio" value="Arterial" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300" checked>
-                        <label for="arterialRadio" class="ml-2 block text-sm font-medium text-gray-900">
-                            Arterial
-                        </label>
+                        <label for="arterialRadio" class="ml-2 block text-sm font-medium text-gray-900">Arterial</label>
                     </div>
                     <div class="flex items-center">
                         <input id="venousRadio" name="gasType" type="radio" value="Venous" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
-                        <label for="venousRadio" class="ml-2 block text-sm font-medium text-gray-900">
-                            Venous
-                        </label>
+                        <label for="venousRadio" class="ml-2 block text-sm font-medium text-gray-900">Venous</label>
                     </div>
                 </div>
             </div>
 
             <button id="generateBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
-                Generate Report
+                <svg id="generateBtnIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                <span id="generateBtnText">Generate Report</span>
             </button>
 
-            <!-- NEW: Feedback Button Added -->
             <div class="mt-4 text-center">
-                <a
-                    href="https://forms.gle/vpW16mnWeGmmQ4Fg8"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="inline-block bg-slate-100 text-slate-700 font-semibold py-2 px-5 rounded-lg hover:bg-slate-200 transition-colors duration-200 text-sm"
-                >
+                <a href="https://forms.gle/vpW16mnWeGmmQ4Fg8" target="_blank" rel="noopener noreferrer" class="inline-block bg-slate-100 text-slate-700 font-semibold py-2 px-5 rounded-lg hover:bg-slate-200 transition-colors duration-200 text-sm">
                     Provide Feedback
                 </a>
             </div>
@@ -92,17 +80,13 @@
                 <div class="flex justify-between items-center mb-2">
                     <h2 class="text-xl font-semibold text-gray-800">Generated Report</h2>
                     <div class="flex items-center space-x-2">
-                        <button id="copyBtn" class="hidden bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition duration-300 ease-in-out text-sm">
-                            Copy
-                        </button>
-                        <button id="downloadBtn" class="hidden bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-300 ease-in-out text-sm">
-                            Download PDF
-                        </button>
+                        <button id="copyBtn" class="hidden bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition duration-300 ease-in-out text-sm">Copy</button>
+                        <button id="downloadBtn" class="hidden bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-300 ease-in-out text-sm">Download PDF</button>
                     </div>
                 </div>
                 <div id="loadingIndicator" class="hidden justify-center items-center py-10">
                     <div class="spinner"></div>
-                    <p class="ml-4 text-gray-600">Generating report, please wait...</p>
+                    <p id="loadingText" class="ml-4 text-gray-600">Generating report, please wait...</p>
                 </div>
                 <div id="errorMessage" class="hidden p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
                     <span class="font-medium">Error!</span> <span id="errorMessageText"></span>
@@ -118,13 +102,17 @@
     <script>
         const scenarioInput = document.getElementById('scenarioInput');
         const generateBtn = document.getElementById('generateBtn');
+        const generateBtnText = document.getElementById('generateBtnText');
         const loadingIndicator = document.getElementById('loadingIndicator');
+        const loadingText = document.getElementById('loadingText');
         const reportOutput = document.getElementById('reportOutput');
         const placeholder = document.getElementById('placeholder');
         const copyBtn = document.getElementById('copyBtn');
         const downloadBtn = document.getElementById('downloadBtn');
         const errorMessage = document.getElementById('errorMessage');
         const errorMessageText = document.getElementById('errorMessageText');
+
+        let pollingInterval; // To hold the interval ID
 
         generateBtn.addEventListener('click', handleGenerateReport);
         copyBtn.addEventListener('click', copyReportToClipboard);
@@ -133,79 +121,67 @@
         async function handleGenerateReport() {
             const scenario = scenarioInput.value.trim();
             if (!scenario) {
-                showError("Please enter a clinical scenario before generating a report.");
+                showError("Please enter a clinical scenario.");
                 return;
             }
-
-            showLoading(true);
-            reportOutput.textContent = '';
-            errorMessage.classList.add('hidden');
-
-            try {
-                const generatedText = await callGeminiAPI(scenario); 
-
-                if (generatedText) {
-                    reportOutput.textContent = generatedText;
-                } else {
-                    showError("The model could not generate a report for this scenario.");
-                }
-
-            } catch (error) {
-                console.error("Error during report generation:", error);
-                showError(error.message || "An unexpected error occurred. Please try again.");
-            } finally {
-                showLoading(false);
-            }
-        }
-
-       /**
-        * Calls our own secure Netlify Function to generate the report.
-        * NEW: Now includes a 30-second timeout.
-        */
-        async function callGeminiAPI(scenario) {
-            const selectedGasType = document.querySelector('input[name="gasType"]:checked').value;
-            const functionURL = '/.netlify/functions/generate-report';
             
-            // NEW: AbortController for managing timeouts
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 29990); // 29 seconds
-
+            clearInterval(pollingInterval); // Stop any previous polling
+            showLoading(true, "Starting job...");
+            errorMessage.classList.add('hidden');
+            
             try {
-                const response = await fetch(functionURL, {
+                const selectedGasType = document.querySelector('input[name="gasType"]:checked').value;
+                const response = await fetch('/.netlify/functions/generate-report-invoke', {
                     method: 'POST',
-                    signal: controller.signal, // NEW: Attach the signal to the fetch request
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        scenario: scenario,
-                        gasType: selectedGasType
-                    }),
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scenario, gasType: selectedGasType }),
                 });
 
                 if (!response.ok) {
-                    const errorResult = await response.json().catch(() => ({ error: 'The server returned an invalid error format.' }));
-                    throw new Error(errorResult.error || 'The server returned an error.');
+                    const errData = await response.json();
+                    throw new Error(errData.error || "Failed to start the report generation job.");
                 }
 
-                const result = await response.json();
-                return result.report;
+                const { jobId } = await response.json();
+                pollForReport(jobId);
 
             } catch (error) {
-                // NEW: Check if the error was caused by our timeout
-                if (error.name === 'AbortError') {
-                    throw new Error('The request took too long and timed out. This can happen with complex scenarios. Please try again or simplify the scenario.');
-                }
-                console.error("Error calling Netlify function:", error);
-                throw error; 
-            } finally {
-                // NEW: Always clear the timeout timer
-                clearTimeout(timeoutId);
+                console.error("Error invoking function:", error);
+                showError(error.message);
+                showLoading(false);
             }
         }
+        
+        function pollForReport(jobId) {
+            showLoading(true, "Report is generating in the background...");
+            
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/.netlify/functions/get-report-status?jobId=${jobId}`);
+                    if (!response.ok) return; // Silently ignore poll errors
 
-        function showLoading(isLoading) {
+                    const data = await response.json();
+
+                    if (data.status === 'completed') {
+                        clearInterval(pollingInterval);
+                        reportOutput.textContent = data.report;
+                        showLoading(false);
+                    } else if (data.status === 'failed') {
+                        clearInterval(pollingInterval);
+                        showError(data.error || "The background job failed to generate a report.");
+                        showLoading(false);
+                    }
+                    // If status is 'processing', do nothing and wait for the next poll
+                } catch (error) {
+                    // Ignore fetch errors during polling
+                    console.warn("Polling error:", error);
+                }
+            }, 3000); // Check every 3 seconds
+        }
+
+        function showLoading(isLoading, message = "") {
             if (isLoading) {
+                loadingText.textContent = message;
                 loadingIndicator.classList.remove('hidden');
                 loadingIndicator.classList.add('flex');
                 reportOutput.classList.add('hidden');
@@ -217,7 +193,7 @@
             } else {
                 loadingIndicator.classList.add('hidden');
                 loadingIndicator.classList.remove('flex');
-                if(reportOutput.textContent) {
+                if (reportOutput.textContent) {
                     reportOutput.classList.remove('hidden');
                     placeholder.classList.add('hidden');
                     copyBtn.classList.remove('hidden');
@@ -228,7 +204,7 @@
             }
         }
 
-        function showError(message = "Something went wrong. Please try again.") {
+        function showError(message) {
             errorMessageText.textContent = message;
             errorMessage.classList.remove('hidden');
             reportOutput.classList.add('hidden');
@@ -237,7 +213,6 @@
 
         function copyReportToClipboard() {
             if (!reportOutput.textContent) return;
-            // Using document.execCommand for better iframe compatibility
             const textArea = document.createElement("textarea");
             textArea.value = reportOutput.textContent;
             document.body.appendChild(textArea);
@@ -247,56 +222,36 @@
                 copyBtn.textContent = 'Copied!';
                 setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
             } catch (err) {
-                console.error('Could not copy text: ', err);
                 showError("Could not copy text to clipboard.");
             }
             document.body.removeChild(textArea);
         }
-        
+
         async function downloadReportAsPDF() {
             if (!reportOutput.textContent) return;
             const { jsPDF } = window.jspdf;
-
             try {
-                const canvas = await html2canvas(reportOutput, { 
-                    scale: 3, 
-                    backgroundColor: '#ffffff'
-                });
-                
+                const canvas = await html2canvas(reportOutput, { scale: 3, backgroundColor: '#ffffff' });
                 const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = pdf.internal.pageSize.getHeight();
-                
-                const canvasWidth = canvas.width;
-                const canvasHeight = canvas.height;
-                const canvasAspectRatio = canvasWidth / canvasHeight;
-                
                 const margin = 10;
                 let imgWidth = pdfWidth - (2 * margin);
-                let imgHeight = imgWidth / canvasAspectRatio;
-
+                let imgHeight = imgWidth / (canvas.width / canvas.height);
                 if (imgHeight > pdfHeight - (2 * margin)) {
                     imgHeight = pdfHeight - (2 * margin);
-                    imgWidth = imgHeight * canvasAspectRatio;
+                    imgWidth = imgHeight * (canvas.width / canvas.height);
                 }
-
                 const x = (pdfWidth - imgWidth) / 2;
                 const y = (pdfHeight - imgHeight) / 2;
-
                 pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
                 pdf.save('simulation-blood-gas-report.pdf');
-
             } catch (error) {
-                console.error('Error generating PDF:', error);
-                showError('Could not generate PDF. Please try again.');
+                showError('Could not generate PDF.');
             }
         }
     </script>
 </body>
 </html>
+
