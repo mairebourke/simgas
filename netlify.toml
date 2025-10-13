@@ -1,15 +1,2 @@
-# This file tells Netlify exactly how to build your site.
-[build]
-  # We have no build command for our simple HTML site.
-  command = "echo 'No build command'"
-  
-  # Specifies where our public-facing files are (the root, where index.html is).
-  publish = "."
-  
-  # Specifies where our serverless functions are.
-  functions = "netlify/functions"
-
-# This section configures the functions environment.
-[functions]
-  # This tells Netlify to use a modern and reliable bundler for our functions.
-  node_bundler = "esbuild"
+[functions.generate-report]
+  timeout = 59
