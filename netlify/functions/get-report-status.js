@@ -1,8 +1,8 @@
-import { getStore } from "@netlify/blobs";
+const { getStore } = require("@netlify/blobs");
 
-export const handler = async (req) => {
+exports.handler = async (event) => {
     // Get the jobId from the query string, e.g., /?jobId=...
-    const jobId = req.queryStringParameters.jobId;
+    const jobId = event.queryStringParameters.jobId;
 
     if (!jobId) {
         return {
