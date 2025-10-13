@@ -86,7 +86,7 @@ Your primary task is to ensure every single value in the JSON output is a direct
     * The generated values should result in a ratio that reflects the scenario: ~1-2 for pure HAGMA, >2 for HAGMA + metabolic alkalosis, <1 for HAGMA + NAGMA.
 
 4.  **Respiratory Compensation Formulas**:
-    * **Metabolic Acidosis**: The generated PaCO2 MUST be consistent with the expected value. A reliable formula is Expected PaCO2 (kPa) = (0.2 * cHCO₃⁻) + 1.1.
+    * **Metabolic Acidosis**: The generated PaCO2 MUST be consistent with the expected value. A reliable formula is PaCO2 (kPa) = (0.2 * cHCO₃⁻) + 1.1.
     * **Metabolic Alkalosis**: For every 1 mmol/L rise in cHCO₃⁻, PaCO2 should rise by ~0.09 kPa.
 
 5.  **Metabolic Compensation Formulas**:
