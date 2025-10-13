@@ -65,7 +65,7 @@ Your primary task is to ensure every single value in the JSON output is a direct
     * > 2: HAGMA with a concurrent metabolic alkalosis.
 
 4.  **Respiratory Compensation Formulas**:
-    * **Metabolic Acidosis**: The expected PaCO2 (in kPa) MUST be calculated and consistent. A reliable formula is `Expected PaCO2 = (0.2 * cHCO₃⁻) + 1.1`. The generated PaCO2 must be very close to this expected value.
+    * **Metabolic Acidosis**: The expected PaCO2 (in kPa) MUST be calculated and consistent. A reliable formula is \`Expected PaCO2 = (0.2 * cHCO₃⁻) + 1.1\`. The generated PaCO2 must be very close to this expected value.
     * **Metabolic Alkalosis**: For every 1 mmol/L rise in cHCO₃⁻, the PaCO2 should rise by approximately 0.09 kPa.
 
 5.  **Metabolic Compensation Formulas**:
@@ -215,3 +215,4 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         };
     }
 };
+
