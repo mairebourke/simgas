@@ -37,50 +37,40 @@ exports.handler = async (event) => {
     try {
         const { scenario, gasType } = JSON.parse(event.body);
 
-        // --- PROMPT 1: DATA AND INTERPRETATION GENERATION (ENHANCED) ---
+        // --- PROMPT 1: DATA AND INTERPRETATION GENERATION (SIMPLIFIED) ---
         const dataGenerationPrompt = `
 You are an advanced clinical physiology simulator. Your function is to act as the internal software of a blood gas analysis machine, generating a complete and internally consistent report based on a clinical scenario.
 
 Your output MUST be a valid JSON object and nothing else. Do not use markdown, notes, or any text outside of the JSON structure.
 
 ### Core Directive: Pathophysiological Consistency
-Your primary task is to ensure every single value in the JSON output is a direct, logical, and quantifiable consequence of the provided clinical scenario. The entire report must tell a single, coherent clinical story. Before outputting the JSON, internally double-check all generated values against the Governing Physiological Principles to ensure complete consistency.
+Your primary task is to ensure every single value in the JSON output is a direct, logical, and quantifiable consequence of the provided clinical scenario. The entire report must tell a single, coherent clinical story.
 
 ### Governing Physiological Principles (You MUST adhere to these)
 
-1.  **Acid-Base Balance (Henderson-Hasselbalch Relationship)**: The values for pH, pco2, and chco3 MUST be mathematically consistent. A change in one directly impacts the others.
-    * An acute acidosis will have a much lower pH for a given pco2 than a chronic, compensated state.
+1.  **Acid-Base Balance (Henderson-Hasselbalch Relationship)**: The values for pH, pco2, and chco3 MUST be mathematically consistent. For example, a high pco2 (acid) MUST result in a lower pH unless compensated by a high chco3 (base). An acute acidosis will have a much lower pH for a given pco2 than a chronic, compensated state.
 
 2.  **Anion Gap (AG)**:
-    * Calculate as: AG = (Na⁺ + K⁺) - (Cl⁻ + cHCO₃⁻). Normal is 8-16 mmol/L.
-    * For scenarios like DKA, lactic acidosis, or MUDPILES toxidromes, you MUST generate values that result in a high anion gap (HAGMA).
-    * For scenarios like diarrhoea or RTA, you MUST generate values that result in a normal anion gap (NAGMA).
+    * The Anion Gap, calculated as (Na⁺ - (Cl⁻ + cHCO₃)), MUST be appropriate for the scenario.
+    * In cases of DKA, severe lactic acidosis, or certain toxidromes, you MUST generate Na⁺, Cl⁻, and cHCO₃ values that result in a high anion gap (typically > 16 mmol/L).
+    * In other cases like severe diarrhea, it should be normal (8-16 mmol/L).
 
-3.  **Delta Ratio (for HAGMA)**:
-    * If a HAGMA exists, calculate the Delta Ratio to check for mixed disorders.
-    * Delta Ratio = (Actual AG - 12) / (24 - Actual cHCO₃⁻)
-    * < 0.4: Pure NAGMA (unlikely if you've determined a HAGMA, check your logic).
-    * 0.4 - 0.8: Mixed HAGMA and NAGMA.
-    * 1 - 2: Pure HAGMA.
-    * > 2: HAGMA with a concurrent metabolic alkalosis.
+3.  **Oxygenation & A-a Gradient**:
+    * The Alveolar-arterial (A-a) gradient MUST reflect the scenario's impact on the lungs.
+    * For a patient on room air (fio2=0.21), the A-a gradient should be low.
+    * In cases of pneumonia, ARDS, PE, or pulmonary edema, the A-a gradient MUST be significantly elevated, indicating impaired oxygen transfer.
 
-4.  **Respiratory Compensation Formulas**:
-    * **Metabolic Acidosis**: The expected PaCO2 (in kPa) MUST be calculated and consistent. A reliable formula is \`Expected PaCO2 = (0.2 * cHCO₃⁻) + 1.1\`. The generated PaCO2 must be very close to this expected value.
-    * **Metabolic Alkalosis**: For every 1 mmol/L rise in cHCO₃⁻, the PaCO2 should rise by approximately 0.09 kPa.
-
-5.  **Metabolic Compensation Formulas**:
-    * **Acute Respiratory Acidosis**: cHCO₃⁻ should rise by ~0.2 mmol/L for every 0.13 kPa (1 mmHg) rise in PaCO2 above 5.3 kPa.
-    * **Chronic Respiratory Acidosis**: cHCO₃⁻ should rise by ~0.5 mmol/L for every 0.13 kPa (1 mmHg) rise in PaCO2 above 5.3 kPa.
-    * **Acute Respiratory Alkalosis**: cHCO₃⁻ should fall by ~0.25 mmol/L for every 0.13 kPa (1 mmHg) fall in PaCO2 below 5.3 kPa.
-    * **Chronic Respiratory Alkalosis**: cHCO₃⁻ should fall by ~0.7 mmol/L for every 0.13 kPa (1 mmHg) fall in PaCO2 below 5.3 kPa.
-
-6.  **Oxygenation & A-a Gradient**:
-    * The Alveolar-arterial (A-a) gradient (in kPa) MUST reflect the scenario's impact on the lungs.
-    * Formula: A-a = (FiO₂ * (Patm - PH₂O)) - (PaCO₂ / R) - PaO₂. Assume Patm=101.3, PH₂O=6.3, R=0.8. Simplified: A-a = (FiO₂ * 95) - (PaCO₂ / 0.8) - PaO₂.
-    * In cases of pneumonia, ARDS, PE, or pulmonary edema, the A-a gradient MUST be significantly elevated.
+4.  **Compensation**:
+    * Metabolic and respiratory compensation must be logical and appropriate for the acuity of the scenario.
+    * A chronic respiratory acidosis (e.g., COPD) MUST show renal compensation (elevated cHCO₃).
+    * An acute event (e.g., seizure, asthma attack) will show little to no metabolic compensation (normal or near-normal cHCO₃).
+    * A metabolic acidosis MUST show some degree of respiratory compensation (lower pco2).
 
 ### Scenario-Specific Mandates
-- **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value (e.g., 5.3-6.7 kPa).
+- **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value.
+
+### Final Review Instruction
+Before outputting the JSON, internally double-check all generated values against the Governing Physiological Principles and Scenario-Specific Mandates to ensure complete consistency.
 
 ### JSON Structure to Follow
 The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po2) must be in kPa.
@@ -92,6 +82,9 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
   "interpretation": "Normal Acid-Base Balance"
 }
 `;
+        
+        // Fix for SyntaxError from previous version
+        const scenarioText = `${dataGenerationPrompt}\n\nClinical Scenario: ${scenario}`;
 
         const model = 'gemini-2.5-flash-preview-05-20';
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
@@ -100,7 +93,7 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: `${dataGenerationPrompt}\n\nClinical Scenario: ${scenario}` }] }],
+                contents: [{ parts: [{ text: scenarioText }] }],
                 generationConfig: {
                     temperature: 0.4,
                     responseMimeType: "application/json",
@@ -119,7 +112,6 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         const dataResult = await dataResponse.json();
         let reportData;
         try {
-            // Added optional chaining for safety
             const rawText = dataResult?.candidates?.[0]?.content?.parts?.[0]?.text;
             if (!rawText) {
                 throw new Error("Received an empty response from the AI model.");
