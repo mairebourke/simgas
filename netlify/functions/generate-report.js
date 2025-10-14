@@ -51,27 +51,25 @@ exports.handler = async (event) => {
     try {
         const { scenario, gasType } = JSON.parse(event.body);
 
-        // --- SIMPLIFIED AND CORRECTED PROMPT ---
+        // --- FINAL SIMPLIFIED PROMPT ---
         const dataGenerationPrompt = `
-You are an advanced clinical physiology simulator. Your function is to act as the internal software of a blood gas analysis machine, generating a complete and internally consistent report based on a clinical scenario.
-Your output MUST be a valid JSON object and nothing else. Do not use markdown or any text outside of the JSON structure.
+You are a clinical data simulator. Your task is to generate a realistic blood gas report based on a clinical scenario.
+Your output MUST be a valid JSON object and nothing else. Do not use markdown.
 
-### Core Directive: Pathophysiological Consistency
-Your primary task is to ensure every value in the JSON output is a direct, logical consequence of the provided clinical scenario. The report must tell a single, coherent clinical story.
+### Core Principles
+- The entire report must be physiologically plausible and consistent with the scenario.
+- **Acid-Base**: pH, pco2, and bicarbonate must be linked. High pco2 means lower pH (acidosis).
+- **Anion Gap**: The Anion Gap must be high in scenarios like DKA or severe lactic acidosis.
+- **Oxygenation**: The A-a gradient must be high in scenarios involving lung pathology (pneumonia, PE, ARDS).
+- **Compensation**: Chronic conditions (like COPD) must show metabolic compensation. Acute events (like a seizure) must not.
 
-### Governing Physiological Principles (You MUST adhere to these)
-1.  **Acid-Base Balance**: The values for pH, pco2, and chco3 must be mathematically consistent. For example, a high pco2 must result in a lower pH unless compensated by a high chco3.
-2.  **Anion Gap (AG)**: The Anion Gap, calculated as (Na+ - (Cl- + cHCO3)), must be appropriate. In scenarios like DKA or lactic acidosis, it MUST be high. In other cases like severe diarrhea, it should be normal.
-3.  **Oxygenation & A-a Gradient**: The A-a gradient must reflect the scenario's impact on the lungs. It MUST be elevated in cases of pneumonia, ARDS, or PE.
-4.  **Compensation**: Compensation must be logical. A chronic condition like COPD must show renal compensation (elevated cHCO3). An acute event will show little to no metabolic compensation.
-
-### Scenario-Specific Mandates
-- **Cardiac Arrest**: If the scenario involves cardiac arrest, you MUST generate results consistent with a severe mixed metabolic and respiratory acidosis. This includes a very low pH (e.g., 6.9-7.1), a high pco2, a low bicarbonate, and a very high lactate level.
-- **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value.
+### Specific Scenarios
+- **Cardiac Arrest**: Generate a severe mixed respiratory and metabolic acidosis with a very high lactate.
+- **Venous Sample**: Generate a low PO2 (4-6 kPa) and a slightly elevated PCO2.
 
 ### JSON Structure to Follow
-The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po2) must be in kPa.
-{ "patientId": "123456", "lastName": "Smith", "firstName": "Jane", "temperature": "37.0", "fio2": "0.21", "ph": "7.35", "pco2": "5.50", "po2": "12.00", "na": "140", "k": "4.1", "cl": "100", "ca": "1.20", "hct": "45", "glucose": "5.5", "lactate": "1.2", "thb": "15.0", "o2hb": "98.0", "cohb": "1.1", "hhb": "1.9", "methb": "0.6", "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "interpretation": "Normal Acid-Base Balance" }`;
+The value for the "bloodType" key must be "${gasType}". All gas values must be in kPa.
+{ "patientId": "123456", "lastName": "Smith", "firstName": "Jane", "temperature": "37.0", "fio2": "0.21", "ph": "7.35", "pco2": "5.50", "po2": "12.00", "na": "140", "k": "4.1", "cl": "100", "ca": "1.20", "hct": "45", "glucose": "5.5", "lactate": "1.2", "thb": "15.0", "o2hb": "98.0", "cohb": "1.1", "hhb": "1.9", "methb": "0.6", "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "interpretation": "Plausible interpretation based on the data." }`;
         
         const model = 'gemini-2.5-flash-preview-05-20';
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
@@ -165,4 +163,6 @@ The value for the "bloodType" key must be "${gasType}". All gas values (pco2, po
         };
     }
 };
+
+
 
