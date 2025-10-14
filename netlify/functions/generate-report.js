@@ -66,6 +66,7 @@ Your primary task is to ensure every value in the JSON output is a direct, logic
 4.  **Compensation**: Compensation must be logical. A chronic condition like COPD must show renal compensation (elevated cHCO3). An acute event will show little to no metabolic compensation.
 
 ### Scenario-Specific Mandates
+- **Cardiac Arrest**: If the scenario involves cardiac arrest, you MUST generate results consistent with a severe mixed metabolic and respiratory acidosis. This includes a very low pH (e.g., 6.9-7.1), a high pco2, a low bicarbonate, and a very high lactate level.
 - **Venous Sample**: If gasType is "Venous", you MUST generate a low PO2 (4.0-6.0 kPa) and a PCO2 slightly higher than a typical arterial value.
 
 ### JSON Structure to Follow
