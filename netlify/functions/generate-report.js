@@ -76,9 +76,9 @@ exports.handler = async (event) => {
 
 \`\`\`json
 { 
-    "patientId": "GENERATE RANDOM ALPHANUMERIC ID", 
-    "lastName": "", 
-    "firstName": "", 
+    "patientId": "GENERATE RANDOM NUMERIC ID", 
+    "lastName": "GENERATE RANDOM NAME", 
+    "firstName": "GENERATE RANDOM NAME", 
     "temperature": "", 
     "fio2": "0.21", 
     "ph": "7.35", 
