@@ -71,8 +71,7 @@ Your output MUST be a valid JSON object and nothing else. Do not use markdown.
 The value for the "bloodType" key must be "${gasType}". All gas values must be in kPa.
 { "patientId": "123456", "lastName": "Smith", "firstName": "Jane", "temperature": "37.0", "fio2": "0.21", "ph": "7.35", "pco2": "5.50", "po2": "12.00", "na": "140", "k": "4.1", "cl": "100", "ca": "1.20", "hct": "45", "glucose": "5.5", "lactate": "1.2", "thb": "15.0", "o2hb": "98.0", "cohb": "1.1", "hhb": "1.9", "methb": "0.6", "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "interpretation": "Plausible interpretation based on the data." }`;
         
-        // --- FIX APPLIED HERE ---
-        // CHANGED MODEL NAME to a stable, generally available version
+        
         const model = 'gemini-2.5-flash'; 
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
 
@@ -82,15 +81,14 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
             body: JSON.stringify({
                 contents: [{ parts: [{ text: `${dataGenerationPrompt}\n\nClinical Scenario: ${scenario}` }] }],
                 generationConfig: {
-                    temperature: 0.4,
+                    temperature: 0.2,
                     responseMimeType: "application/json",
                 }
             })
         });
 
         if (!dataResponse.ok) {
-            // This line now correctly throws the error if something else fails,
-            // but the 404 from the retired model should be resolved.
+            
             throw new Error(`Google API Error: ${dataResponse.status}`);
         }
 
@@ -144,16 +142,7 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
                            formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)') +
                            formatLine('P50', reportData.p50, 'kPa') +
                            formatLine('ctO₂', reportData.cto2, 'Vol %') + '\n\n' +
-                           '┌────────────────────────────────────────────────────────┐\n' +
-                           '│ Interpretation                                         │\n' +
-                           '├────────────────────────────────────────────────────────┤\n';
-        const wrappedScenario = wordWrap(`Scenario: ${scenario}`, 54);
-        wrappedScenario.forEach(line => { formattedReport += `│ ${line.padEnd(54, ' ')} │\n`; });
-        formattedReport += `│ ${''.padEnd(54, ' ')} │\n`;
-        const wrappedInterpretation = wordWrap(`Interpretation: ${reportData.interpretation || 'Not provided'}`, 54);
-        wrappedInterpretation.forEach(line => { formattedReport += `│ ${line.padEnd(54, ' ')} │\n`; });
-        formattedReport += '└────────────────────────────────────────────────────────┘\n';
-        
+                           
         return {
             statusCode: 200,
             body: JSON.stringify({ report: formattedReport }),
