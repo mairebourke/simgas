@@ -76,10 +76,10 @@ exports.handler = async (event) => {
 
 \`\`\`json
 { 
-    "patientId": "Q2039538", 
-    "lastName": "BOURKE", 
-    "firstName": "M", 
-    "temperature": "37.0", 
+    "patientId": "", 
+    "lastName": "", 
+    "firstName": "", 
+    "temperature": "", 
     "fio2": "0.21", 
     "ph": "7.35", 
     "pco2": "5.50", 
