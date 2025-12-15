@@ -71,7 +71,9 @@ Your output MUST be a valid JSON object and nothing else. Do not use markdown.
 The value for the "bloodType" key must be "${gasType}". All gas values must be in kPa.
 { "patientId": "123456", "lastName": "Smith", "firstName": "Jane", "temperature": "37.0", "fio2": "0.21", "ph": "7.35", "pco2": "5.50", "po2": "12.00", "na": "140", "k": "4.1", "cl": "100", "ca": "1.20", "hct": "45", "glucose": "5.5", "lactate": "1.2", "thb": "15.0", "o2hb": "98.0", "cohb": "1.1", "hhb": "1.9", "methb": "0.6", "be": "0.0", "chco3": "24.0", "aado2": "15.0", "so2": "98.2", "interpretation": "Plausible interpretation based on the data." }`;
         
-        const model = 'gemini-2.5-flash-preview-05-20';
+        // --- FIX APPLIED HERE ---
+        // CHANGED MODEL NAME to a stable, generally available version
+        const model = 'gemini-2.5-flash'; 
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
 
         const dataResponse = await fetch(apiURL, {
@@ -87,6 +89,8 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
         });
 
         if (!dataResponse.ok) {
+            // This line now correctly throws the error if something else fails,
+            // but the 404 from the retired model should be resolved.
             throw new Error(`Google API Error: ${dataResponse.status}`);
         }
 
@@ -98,14 +102,14 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
         let formattedReport = '                   Blood Gas\n' +
                               '                 Emergency Department\n' +
                               '────────────────────────────────────────────────────────\n' +
-                              `Patient ID:       ${reportData.patientId || ''}\n` +
-                              `Last Name         ${reportData.lastName || ''}\n` +
-                              `First Name        ${reportData.firstName || ''}\n` +
-                              `Date of Birth     ${dob}\n` +
-                              `Temperature       ${reportData.temperature || ''} ° C\n` +
-                              `FIO₂              ${reportData.fio2 || ''}\n` +
-                              `Sample type       Blood\n` +
-                              `Blood Type        ${gasType}\n` +
+                              `Patient ID:        ${reportData.patientId || ''}\n` +
+                              `Last Name          ${reportData.lastName || ''}\n` +
+                              `First Name         ${reportData.firstName || ''}\n` +
+                              `Date of Birth      ${dob}\n` +
+                              `Temperature        ${reportData.temperature || ''} ° C\n` +
+                              `FIO₂               ${reportData.fio2 || ''}\n` +
+                              `Sample type        Blood\n` +
+                              `Blood Type         ${gasType}\n` +
                               '────────────────────────────────────────────────────────\n';
         if (gasType === 'Venous') {
             formattedReport += formatLine('pH', reportData.ph, '', '(7.310 - 7.410)');
@@ -163,6 +167,3 @@ The value for the "bloodType" key must be "${gasType}". All gas values must be i
         };
     }
 };
-
-
-
