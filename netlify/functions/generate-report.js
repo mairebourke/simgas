@@ -21,7 +21,6 @@ function formatLine(label, value, unit = '', reference = '') {
 
 /**
  * Simple function to calculate DOB based on age in the scenario.
- * (No changes needed here)
  */
 function getDobFromScenario(scenario) {
     const ageRegex = /\b(\d{1,3})\s*(year-old|year old|yo|y\/o)\b/i;
@@ -53,26 +52,29 @@ exports.handler = async (event) => {
         const dataGenerationPrompt = `
 ### CRISPE Framework
 
-1.  **Context**: This environment is a high-fidelity medical simulation setting. You must generate results that are absolutely physiologically coherent and internally consistent with the clinical context provided.
-2.  **Role**: You are an Arterial and Venous Gas and Chemistry Analyser. Your sole function is to process the virtual 'sample' and return numerical results.
-3.  **Instruction**: Given the clinical scenario, your task is to generate the complete data set for a physiologically plausible blood gas report. Your entire output MUST be a valid JSON object and contain nothing else.
-
-4.  **Subject**: [User Scenario: ${scenario}]
-
-5.  **Preset (Hard Constraints)**:
-    * **Physiological Consistency**:
-        * The entire report must be physiologically plausible and consistent with the scenario.
-        * Acid-Base: pH, pco2, and bicarbonate must be linked.
-        * Anion Gap: The Anion Gap must be high in scenarios like DKA or severe lactic acidosis.
-        * Oxygenation: The A-a gradient must be high in scenarios involving lung pathology.
-        * Compensation: Chronic conditions (like COPD) must show metabolic compensation.
+1. **Context**: You are working in a high‑fidelity medical simulation environment. Each report must be physiologically coherent and internally consistent with the clinical context.
+2. **Role**: You are an arterial and venous gas and chemistry analyser. Your sole function is to process the virtual sample and return numerical results; you do not provide interpretation.
+3. **Instruction**: Generate a complete data set for a realistic blood gas report based on the scenario. Your entire output MUST be a valid JSON object and nothing else.
+4. **Subject**: [User Scenario: ${scenario}]
+5. **Preset (Hard Constraints)**:
+    * **Acid–base assessment**:
+        - Normal pH is 7.35–7.45. pH < 7.35 indicates acidaemia and pH > 7.45 indicates alkalaemia. A normal pH may still accompany mixed processes.
+        - Normal pCO₂ is 35–45 mmHg (4.67–6.00 kPa) and normal bicarbonate (HCO₃⁻) is 22–26 mmol/L.
+        - In acidaemia, an elevated pCO₂ denotes a respiratory acidosis and a reduced HCO₃⁻ denotes a metabolic acidosis. In alkalaemia, a reduced pCO₂ denotes respiratory alkalosis and an elevated HCO₃⁻ denotes metabolic alkalosis.
+    * **Anion gap**:
+        - Calculate the anion gap (AG) as Na⁺ − (Cl⁻ + HCO₃⁻). A normal AG is approximately 12 ± 4 mmol/L. High AG metabolic acidosis suggests unmeasured acid accumulation (e.g., diabetic ketoacidosis, lactic acidosis, toxins); normal AG metabolic acidosis is associated with bicarbonate losses (e.g., diarrhoea, renal tubular acidosis).
+    * **Compensation**:
+        - For acute respiratory acidosis, the expected HCO₃⁻ increases by ~1 mmol/L for each 10 mmHg (≈1.33 kPa) rise in pCO₂. For chronic respiratory acidosis, HCO₃⁻ increases by ~4 mmol/L per 10 mmHg rise.
+        - For metabolic acidosis, the expected pCO₂ (mmHg) ≈ 1.5 × [HCO₃⁻] + 8 ± 2. If the measured pCO₂ exceeds this value, a concurrent respiratory acidosis exists; if it is lower, a concurrent respiratory alkalosis exists.
+        - For acute respiratory alkalosis, HCO₃⁻ decreases by ~2 mmol/L per 10 mmHg fall in pCO₂; for chronic respiratory alkalosis, it decreases by ~5 mmol/L per 10 mmHg.
+        - For metabolic alkalosis, the expected pCO₂ (mmHg) ≈ 0.7 × [HCO₃⁻] + 20 ± 5; measured values above or below the expected indicate concurrent respiratory acidosis or alkalosis, respectively.
     * **Scenario Overrides**:
-        * Cardiac Arrest: Generate a severe mixed respiratory and metabolic acidosis with a very high lactate.
-        * Venous Sample: Generate a low PO2 (4-6 kPa) and a slightly elevated PCO2.
+        - Cardiac Arrest: Generate a severe mixed respiratory and metabolic acidosis with a very high lactate.
+        - Venous Sample: Generate a pO₂ of 4–6 kPa and a slightly elevated pCO₂ relative to an arterial sample.
     * **Units and Structure**:
-        * All gas values (pCO2, pO2, AaDO2) must be in **kPa**.
-        * The value for the "bloodType" key must be "${gasType}".
-        * The final JSON output **must strictly adhere** to the following structure and include all keys.
+        - All gas values (pCO₂, pO₂, AaDO₂) must be in **kPa**.
+        - The value for the "bloodType" key must be "${gasType}".
+        - The final JSON output must strictly adhere to the following structure and include all keys.
 
 \`\`\`json
 { 
@@ -106,23 +108,22 @@ exports.handler = async (event) => {
 }
 \`\`\`
 
-6.  **Exception**: Do not include any introductory phrases, explanatory text, markdown outside of the JSON block, or any diagnostic interpretation before or after the JSON.
-`; // The user scenario is embedded into the prompt template
+6. **Exception**: Do not include any introductory phrases, explanatory text, markdown outside the JSON block, or any diagnostic interpretation.
+`;
 
-        const model = 'gemini-2.5-flash'; 
+        const model = 'gemini-2.5-flash';
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
 
         const dataResponse = await fetch(apiURL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: dataGenerationPrompt }] }], // Send the complete prompt string
+                contents: [{ parts: [{ text: dataGenerationPrompt }] }],
                 generationConfig: {
-                    // Set to a low temperature for high consistency and accuracy
-                    temperature: 0.2, 
-                    responseMimeType: "application/json",
-                }
-            })
+                    temperature: 0.2,
+                    responseMimeType: 'application/json',
+                },
+            }),
         });
 
         if (!dataResponse.ok) {
@@ -133,19 +134,18 @@ exports.handler = async (event) => {
         const reportDataText = dataResult.candidates[0]?.content?.parts[0]?.text;
 
         if (!reportDataText) {
-             throw new Error("API returned no text content for the report.");
+            throw new Error('API returned no text content for the report.');
         }
-        
+
         // Safely parse the JSON, removing common LLM markdown wrappers if present
         const reportData = JSON.parse(reportDataText.replace(/^```json\s*|s*```$/g, '').trim());
-        
+
         const dob = getDobFromScenario(scenario);
 
         // --- FINAL REPORT FORMATTING ---
         let formattedReport = '             Blood Gas\n' +
                              '           Emergency Department\n' +
                              '────────────────────────────────────────────────────────\n' +
-                             // Demographics using formatLine
                              formatLine('Patient ID', reportData.patientId || '') +
                              formatLine('Last Name', reportData.lastName || '') +
                              formatLine('First Name', reportData.firstName || '') +
@@ -155,8 +155,8 @@ exports.handler = async (event) => {
                              formatLine('Sample type', 'Blood') +
                              formatLine('Blood Type', gasType) +
                              '────────────────────────────────────────────────────────\n';
-                             
-        // Blood Gas Values (Conditional on sample type)
+
+        // Blood Gas Values (conditional on sample type)
         if (gasType === 'Venous') {
             formattedReport += formatLine('pH', reportData.ph, '', '(7.310 - 7.410)');
             formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(5.30 - 6.70)');
@@ -166,8 +166,8 @@ exports.handler = async (event) => {
             formattedReport += formatLine('PCO₂', reportData.pco2, 'kPa', '(4.67 - 6.00)');
             formattedReport += formatLine('PO₂', reportData.po2, 'kPa', '(10.67 - 13.33)');
         }
-        
-        // Electrolyte and Metabolite Values
+
+        // Electrolyte and metabolite values
         formattedReport += '────────────────────────────────────────────────────────\n' +
                            formatLine('Na⁺', reportData.na, 'mmol/L', '(135.0 - 148.0)') +
                            formatLine('K⁺', reportData.k, 'mmol/L', '(3.50 - 4.50)') +
@@ -180,7 +180,7 @@ exports.handler = async (event) => {
                            formatLine('Lactate', reportData.lactate, 'mmol/L', '(0.4 – 2.2)') +
                            '────────────────────────────────────────────────────────\n';
 
-        // Oximetry and Calculations
+        // Oximetry and calculations
         formattedReport += formatLine('tHb', reportData.thb, 'g/dL', '(11.5 – 17.4)') +
                            formatLine('O₂ Hb', reportData.o2hb, '%', '(95.0 – 99.0)') +
                            formatLine('COHb', reportData.cohb, '%', '(0.5 – 2.5)') +
@@ -194,8 +194,8 @@ exports.handler = async (event) => {
                            formatLine('cHCO₃ st', reportData.chco3st, 'mmol/L', '(22.4 – 25.8)') +
                            formatLine('P50', reportData.p50, 'kPa') +
                            formatLine('ctO₂', reportData.cto2, 'Vol %') + '\n';
-                           
-        // The block for 'interpretation' is confirmed to be removed.
+
+        // No interpretation block
 
         return {
             statusCode: 200,
