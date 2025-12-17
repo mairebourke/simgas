@@ -68,8 +68,13 @@ exports.handler = async (event) => {
         - For metabolic acidosis, the expected pCO₂ (mmHg) ≈ 1.5 × [HCO₃⁻] + 8 ± 2. If the measured pCO₂ exceeds this value, a concurrent respiratory acidosis exists; if it is lower, a concurrent respiratory alkalosis exists.
         - For acute respiratory alkalosis, HCO₃⁻ decreases by ~2 mmol/L per 10 mmHg fall in pCO₂; for chronic respiratory alkalosis, it decreases by ~5 mmol/L per 10 mmHg.
         - For metabolic alkalosis, the expected pCO₂ (mmHg) ≈ 0.7 × [HCO₃⁻] + 20 ± 5; measured values above or below the expected indicate concurrent respiratory acidosis or alkalosis, respectively.
-    * **Scenario Overrides**:
-        - Cardiac Arrest: Generate a severe mixed respiratory and metabolic acidosis with a very high lactate.
+    * **Asthma Severity Logic (Arterial Only)**:
+        - If the scenario describes **Mild Asthma**: Generate Respiratory Alkalosis with decreased pCO₂ and normal pO₂.
+        - If the scenario describes **Moderate Asthma**: Generate Respiratory Alkalosis with decreased pCO₂ and decreased pO₂.
+        - If the scenario describes **Status Asthmaticus / Impending Failure**: Generate a "pseudonormal" pH and pCO₂ with a moderately decreased pO₂. 
+        - If the scenario describes **Impending Arrest**: Generate Respiratory Acidosis with increased pCO₂ and severely decreased pO₂.    * **Scenario Overrides**:
+    * **Cardiac Arrest: 
+        - Generate a severe mixed respiratory and metabolic acidosis with a very high lactate.
         - Venous Sample: Generate a pO₂ of 4–6 kPa and a slightly elevated pCO₂ relative to an arterial sample.
     * **Units and Structure**:
         - All gas values (pCO₂, pO₂, AaDO₂) must be in **kPa**.
