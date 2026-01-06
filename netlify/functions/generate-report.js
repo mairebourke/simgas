@@ -68,7 +68,54 @@ exports.handler = async (event) => {
         - For metabolic acidosis, the expected pCO₂ (mmHg) ≈ 1.5 × [HCO₃⁻] + 8 ± 2. If the measured pCO₂ exceeds this value, a concurrent respiratory acidosis exists; if it is lower, a concurrent respiratory alkalosis exists.
         - For acute respiratory alkalosis, HCO₃⁻ decreases by ~2 mmol/L per 10 mmHg fall in pCO₂; for chronic respiratory alkalosis, it decreases by ~5 mmol/L per 10 mmHg.
         - For metabolic alkalosis, the expected pCO₂ (mmHg) ≈ 0.7 × [HCO₃⁻] + 20 ± 5; measured values above or below the expected indicate concurrent respiratory acidosis or alkalosis, respectively.
-    * **Asthma Severity Logic (Arterial Only)**:
+    * ** Henderson–Hasselbalch consistency
+        -pH MUST be consistent with pCO₂ and HCO₃⁻:
+          pH ≈ 6.1 + log10( HCO₃⁻ / (0.03 × pCO₂(mmHg)) )
+          where pCO₂(mmHg) = pCO₂(kPa) × 7.5
+        - Permitted tolerance: ±0.03 pH units.
+
+    * 88 Base Excess definition (STANDARD BASE EXCESS)
+        - Base Excess (BE) represents the non-respiratory (metabolic) component of the acid–base
+          disturbance after correction to a pCO₂ of 40 mmHg.
+        - BE must NOT reflect respiratory effects directly.
+        - Negative BE indicates metabolic acidosis.
+        - Positive BE indicates metabolic alkalosis.
+        - BE magnitude must be proportional to the metabolic disturbance implied by HCO₃⁻.
+
+    * Base Excess–Bicarbonate coherence
+        - BE and HCO₃⁻ MUST agree in direction and magnitude:
+          * Low HCO₃⁻ → negative BE
+          * High HCO₃⁻ → positive BE
+        - Large absolute BE values imply severe metabolic derangement and must be supported by
+          scenario severity (e.g. septic shock, cardiac arrest).
+
+    *  Compensation assessment (BOSTON / COPENHAGEN METHODS – INTERNAL ONLY)
+        - Use structured compensation logic internally to ensure physiological plausibility.
+        - Metabolic acidosis:
+          * Expected pCO₂ ≈ 1.5 × HCO₃⁻ + 8 (±2) mmHg
+        - Metabolic alkalosis:
+          * Expected pCO₂ rises ≈ 0.7 mmHg per 1 mmol/L HCO₃⁻ above normal
+        - Respiratory disorders:
+          * Acute respiratory acidosis/alkalosis: small HCO₃⁻ and BE change
+          * Chronic respiratory acidosis/alkalosis: larger HCO₃⁻ and BE change
+        - Ensure compensation does NOT exceed physiological limits.
+        - Mixed disorders are permitted when implied by the scenario.
+
+    *   Anion gap logic (INTERNAL ONLY)
+        - Anion gap = Na⁺ − (Cl⁻ + HCO₃⁻)
+        - Use anion gap internally to ensure electrolyte coherence.
+        - Elevated AG for scenarios such as septic shock, lactic acidosis, DKA.
+        - Normal AG for hyperchloraemic metabolic acidosis.
+        - DO NOT display anion gap in the output.
+    
+    *   Oxygenation coherence
+        - Low pO₂ should generally correspond to reduced sO₂.
+        - High FiO₂ should generally increase pO₂ unless severe shunt or ARDS is implied.
+        - Venous samples should have lower pO₂ and lower saturations than arterial samples.
+        - Oximetry fractions must sum plausibly (O₂Hb + COHb + MetHb + HHb ≈ 100%).
+
+    
+    **Asthma Severity Logic (Arterial Only)**:
         - If the scenario describes **Mild Asthma**: Generate Respiratory Alkalosis with decreased pCO₂ and normal pO₂.
         - If the scenario describes **Moderate Asthma**: Generate Respiratory Alkalosis with decreased pCO₂ and decreased pO₂.
         - If the scenario describes **Status Asthmaticus / Impending Failure**: Generate a "pseudonormal" pH and pCO₂ with a moderately decreased pO₂. 
